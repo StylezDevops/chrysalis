@@ -1,0 +1,23 @@
+{
+  "project": {
+    "name": "sample-tool",
+    "title": "Sample tool",
+    "description": "A command-line tool used by the Chrysalis tests.",
+    "problem": "The tests need a complete, valid configuration to mutate.",
+    "users": ["the test suite"],
+    "objectives": ["exercise every branch of validation"]
+  },
+  "stage": "pre-release",
+  "repo": {"existing": false, "default_branch": "main"},
+  "stack": {"languages": ["python"], "frameworks": [], "platforms": ["cli"]},
+  "risk": {
+    "live_production": false,
+    "handles_money": false,
+    "handles_personal_data": false,
+    "auth": false,
+    "realtime": false,
+    "client_engagement": false
+  },
+  "ci": {"remote": "on-request", "local_gate": "python tests/run_all.py"},
+  "agents": {"max_parallel_agents": 2}
+}

@@ -1,0 +1,154 @@
+# Citations behind METHOD.md, checked against the real projects by tests/test_evidence_real.py.
+# `project` is a key in tests/evidence_roots.local.json (gitignored: machine paths stay off the repo).
+# `quote`, when given, must appear in the file. Client projects are never listed here.
+
+[[cite]]
+rule = "U1"
+project = "MIDAS"
+path = "CLAUDE.md"
+quote = "MEASURE"
+
+[[cite]]
+rule = "U1"
+project = "SUBSTRATE"
+path = ".claude/register-loop.md"
+
+[[cite]]
+rule = "U2"
+project = "CHRYSOS"
+path = "VERIFICATION.md"
+quote = "What every gate owes"
+
+[[cite]]
+rule = "U3"
+project = "CHRYSOS"
+path = "AGENTS.md"
+quote = "sabotage"
+
+[[cite]]
+rule = "U3"
+project = "MIDAS"
+path = "docs/BUG_CLASSES.md"
+
+[[cite]]
+rule = "U4"
+project = "MEMORY_MIDAS"
+path = "midas-gate-coverage-doctrine.md"
+quote = "PINS"
+
+[[cite]]
+rule = "U4"
+project = "MEMORY_SUBSTRATE"
+path = "test-quality-lesson.md"
+
+[[cite]]
+rule = "U5"
+project = "MEMORY_SUBSTRATE"
+path = "never-accept-faults.md"
+quote = "accepting faults is not acceptable"
+
+[[cite]]
+rule = "U6"
+project = "MEMORY_SUBSTRATE"
+path = "fix-never-defer.md"
+quote = "we dont defer"
+
+[[cite]]
+rule = "U6"
+project = "MEMORY_CHRYSOS"
+path = "a-problem-seen-is-owned.md"
+
+[[cite]]
+rule = "U7"
+project = "CHRYSOS"
+path = ".claude/hooks/block_piped_register.py"
+quote = "WHAT IT DOES NOT CATCH"
+
+[[cite]]
+rule = "U7"
+project = "MEMORY_CHRYSOS"
+path = "trust-the-number-not-the-prose.md"
+quote = "self regulate"
+
+[[cite]]
+rule = "U8"
+project = "CHRYSOS"
+path = "tools/check_gate_parity.py"
+
+[[cite]]
+rule = "U9"
+project = "SUBSTRATE"
+path = "scripts/check-docs-current.mjs"
+
+[[cite]]
+rule = "U10"
+project = "CHRYSOS"
+path = ".lusser/spec.md"
+quote = "Budget:"
+
+[[cite]]
+rule = "U10"
+project = "SUBSTRATE"
+path = ".lusser/spec.md"
+quote = "Budget:"
+
+[[cite]]
+rule = "U11"
+project = "CHRYSOS"
+path = "decisions/ADR-027-the-kernel-table-is-built-once.md"
+
+[[cite]]
+rule = "U12"
+project = "CHRYSOS"
+path = ".claude/register-loop.md"
+quote = "85%"
+
+[[cite]]
+rule = "U13"
+project = "MEMORY_CHRYSOS"
+path = "the-worktree-agent-brief.md"
+quote = "Read the diff, not the summary"
+
+[[cite]]
+rule = "U14"
+project = "MEMORY_CHRYSOS"
+path = "decide-and-record-never-block.md"
+
+[[cite]]
+rule = "U14"
+project = "MEMORY_SUBSTRATE"
+path = "take-the-sensible-default.md"
+
+[[cite]]
+rule = "U15"
+project = "MEMORY_CHRYSOS"
+path = "registers-once-per-batch.md"
+quote = "Test what changed"
+
+[[cite]]
+rule = "U16"
+project = "MEMORY_CHRYSOS"
+path = "four-agents-is-the-cap.md"
+
+[[cite]]
+rule = "U16"
+project = "MEMORY_CHRYSOS"
+path = "subagent-worktrees-preferred.md"
+quote = "STALE commit"
+
+[[cite]]
+rule = "K2"
+project = "PROJECTS_RULES"
+path = "principle-pre-release-no-legacy.md"
+quote = "lapses at the first real release"
+
+[[cite]]
+rule = "K5"
+project = "CHRYSOS"
+path = "VERIFICATION.md"
+quote = "G6"
+
+[[cite]]
+rule = "K7"
+project = "MEMORY_SUBSTRATE"
+path = "ci-runs-locally.md"

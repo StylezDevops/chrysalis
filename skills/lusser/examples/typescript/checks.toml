@@ -1,0 +1,57 @@
+[[check]]
+clause = "C1"
+kind   = "spec-test"
+ref    = "test/checkout/total.spec.ts"
+note   = "Vitest, written from clauses by a subagent given only spec.md, commit 8c1e0d"
+
+[[check]]
+clause = "C2"
+kind   = "property"
+ref    = "test/checkout/total.property.spec.ts"
+note   = "fast-check: random carts; invariants, total equals sum of components, all integers, discount ≤ subtotal"
+
+[[check]]
+clause = "C2"
+kind   = "differential"
+ref    = "test/checkout/stripe-diff.integration.ts"
+note   = "for 200 real historical carts, creates a Stripe test-mode invoice preview and asserts amount_due == our total. Stripe is the reference."
+
+[[check]]
+clause = "C2"
+kind   = "real-input"
+ref    = "test/fixtures/orders-2026-09.jsonl"
+note   = "312 real orders exported from prod, customer fields stripped; replayed, totals compared to what was actually charged"
+
+[[check]]
+clause = "C3"
+kind   = "spec-test"
+ref    = "test/checkout/total.spec.ts"
+
+[[check]]
+clause = "C3"
+kind   = "human-accept"
+ref    = "store owner, 2026-10-02"
+note   = "tried three expired codes on staging; saw the warning, not an error page"
+
+[[check]]
+clause = "C4"
+kind   = "property"
+ref    = "test/checkout/total.property.spec.ts"
+note   = "percentage discount never changes tax or shipping; fixed discount never drives subtotal negative"
+
+[[check]]
+clause = "C5"
+kind   = "real-input"
+ref    = "test/checkout/stripe-diff.integration.ts"
+note   = "real Stripe Tax test-mode calls for GB postcodes; non-GB → 422 asserted"
+
+[[check]]
+clause = "C6"
+kind   = "spec-test"
+ref    = "test/checkout/total.spec.ts"
+
+[[check]]
+clause = "C6"
+kind   = "property"
+ref    = "test/checkout/total.property.spec.ts"
+note   = "random unknown SKUs mixed in; response never contains a total key"

@@ -1,0 +1,37 @@
+# Secrets and keys: never tracked
+.env
+.env.*
+*.env
+!*.env.example
+*apikey*
+*api_key*
+*secret*
+!templates/**
+secrets/
+credentials*
+*.pem
+*.key
+*.pfx
+*.p12
+local-secrets*
+NEVER-READ*
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+
+# Local output
+.ci-local/
+*.log
+validation-runs/
+
+# Machine-specific paths
+*.local.json
+
+# Run records written by chrysalis.py in this repo
+.chrysalis/
+
+# Private reports, never tracked
+docs/morning-report.md

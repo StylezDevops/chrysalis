@@ -1,0 +1,42 @@
+# {{title}}: gates
+#
+# Every automated gate has a run command, pass = "exit 0", and a control: a command that runs the
+# same check against a known defect and must fail (U2). Human gates have a procedure instead.
+# Check this file:   python "{{framework_path}}/scripts/chrysalis.py" gates validate
+# Run the gates:     python "{{framework_path}}/scripts/chrysalis.py" gates run
+# Prove the gates:   python "{{framework_path}}/scripts/chrysalis.py" gates run --controls
+#
+# Add a gate when a defect shows a class of fault that no existing gate can see (U3).
+# Commands are TOML literal strings (single quotes) so Windows paths need no escaping.
+
+[[gate]]
+id = "L1"
+purpose = "Every clause in .lusser/spec.md is covered and every ambiguity is answered."
+kind = "automated"
+run = 'python "{{framework_path}}/skills/lusser/scripts/lusser.py" check'
+pass = "exit 0"
+control = 'python "{{framework_path}}/tests/lusser_control.py"'
+
+[[gate]]
+id = "R1"
+purpose = "Every CLOSED defect row carries its numbers, regression test and follow-up decision."
+kind = "automated"
+run = 'python "{{framework_path}}/scripts/chrysalis.py" register check --file docs/register.md --root .'
+pass = "exit 0"
+control = 'python "{{framework_path}}/scripts/chrysalis.py" register check --file "{{framework_path}}/tests/fixtures/register-broken.md" --root .'
+
+[[gate]]
+id = "A1"
+purpose = "The person the work is for has tried it and accepted it."
+kind = "human"
+procedure = "The project owner runs the agreed scenario and records acceptance, with the date, in the story."
+
+# Add the project's own gates below. Example shape:
+#
+# [[gate]]
+# id = "T1"
+# purpose = "Unit tests pass."
+# kind = "automated"
+# run = '{{local_gate}}'
+# pass = "exit 0"
+# control = 'a command that runs the tests with a known defect switched on, and fails'

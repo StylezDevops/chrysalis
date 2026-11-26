@@ -1,0 +1,8 @@
+# Checks for {{title}}. Each clause needs at least 1 check that is not model-review or model-test.
+# A [critical] clause needs real-input, differential or human-accept.
+# Kinds: model-review, model-test, spec-test, property, differential, real-input, human-accept.
+#
+# [[check]]
+# clause = "C1"
+# kind   = "spec-test"
+# ref    = "tests/test_first_milestone.py"

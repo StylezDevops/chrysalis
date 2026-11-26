@@ -1,0 +1,162 @@
+# Checks for Chrysalis. Each clause has a check that is not a model reading its own code; the
+# [critical] clauses C4 and C5 have real-input checks against copies of 4 real repositories.
+# Every test here has also been proven able to fail: tests/run_all.py --sweep arms a defect per clause.
+
+[[check]]
+clause = "C1"
+kind   = "spec-test"
+ref    = "tests/test_chrysalis.py"
+note   = "SelfCheck: a rule with its Evidence line removed fails `chrysalis.py check`"
+
+[[check]]
+clause = "C1"
+kind   = "real-input"
+ref    = "tests/test_evidence_real.py"
+note   = "opens every cited file in the source projects and checks the quoted text is there"
+
+[[check]]
+clause = "C2"
+kind   = "spec-test"
+ref    = "tests/test_chrysalis.py"
+
+[[check]]
+clause = "C2"
+kind   = "differential"
+ref    = "tests/test_chrysalis.py"
+note   = "rule selection compared with an independent hand reading of the K table over flag combinations"
+
+[[check]]
+clause = "C3"
+kind   = "spec-test"
+ref    = "tests/test_chrysalis.py"
+
+[[check]]
+clause = "C3"
+kind   = "property"
+ref    = "tests/test_chrysalis.py"
+note   = "60 random single-field corruptions; none may pass silently"
+
+[[check]]
+clause = "C4"
+kind   = "spec-test"
+ref    = "tests/test_chrysalis.py"
+
+[[check]]
+clause = "C4"
+kind   = "real-input"
+ref    = "tests/validate_real.py"
+note   = "every file hashed before and after apply on copies of CHRYSOS, Substrate, MIDAS and CSAW; results in docs/validation.md"
+
+[[check]]
+clause = "C4"
+kind   = "differential"
+ref    = "docs/validation.md"
+note   = "before/after hash comparison per file, 0 changed and 0 deleted across 5656 files"
+
+[[check]]
+clause = "C5"
+kind   = "spec-test"
+ref    = "tests/test_chrysalis.py"
+
+[[check]]
+clause = "C5"
+kind   = "real-input"
+ref    = "tests/validate_real.py"
+note   = "HEAD, branches, remotes, staged files and commit count compared before and after on 4 real repositories"
+
+[[check]]
+clause = "C6"
+kind   = "spec-test"
+ref    = "tests/test_chrysalis.py"
+
+[[check]]
+clause = "C6"
+kind   = "real-input"
+ref    = "tests/validate_real.py"
+note   = "found register rows R-1 to R-3 on the real copies; reuse of decisions/, AUDIT_REGISTER, VERIFICATION.md and .lusser/ measured"
+
+[[check]]
+clause = "C7"
+kind   = "spec-test"
+ref    = "tests/test_chrysalis.py"
+
+[[check]]
+clause = "C7"
+kind   = "real-input"
+ref    = "tests/validate_real.py"
+note   = "new project built from the real CSAW brief and Python reference; output kept in docs/samples/"
+
+[[check]]
+clause = "C8"
+kind   = "spec-test"
+ref    = "tests/test_chrysalis.py"
+
+[[check]]
+clause = "C8"
+kind   = "real-input"
+ref    = "gates.toml"
+note   = "this repo's 7 automated gates run and their controls run red; run with `chrysalis.py gates run --controls`"
+
+[[check]]
+clause = "C9"
+kind   = "spec-test"
+ref    = "tests/test_chrysalis.py"
+
+[[check]]
+clause = "C9"
+kind   = "real-input"
+ref    = "docs/register.md"
+note   = "3 real defects found during the build, recorded and checked by gate R1"
+
+[[check]]
+clause = "C10"
+kind   = "spec-test"
+ref    = "hooks/test_block_undeclared_npx.py"
+
+[[check]]
+clause = "C10"
+kind   = "spec-test"
+ref    = "hooks/test_no_heredoc_file_write.py"
+
+[[check]]
+clause = "C10"
+kind   = "real-input"
+ref    = "hooks/test_block_piped_register.py"
+note   = "block cases include the exact commands from the 2026-09-22 incident and the false-positive shape it later produced"
+
+[[check]]
+clause = "C11"
+kind   = "spec-test"
+ref    = "tests/test_chrysalis.py"
+
+[[check]]
+clause = "C11"
+kind   = "differential"
+ref    = "tests/test_chrysalis.py"
+note   = "every 8-word sentence of METHOD.md diffed against generated files and templates"
+
+[[check]]
+clause = "C12"
+kind   = "spec-test"
+ref    = "tests/test_chrysalis.py"
+
+[[check]]
+clause = "C12"
+kind   = "real-input"
+ref    = "tests/test_chrysalis.py"
+note   = "Worktrees tests drive real git worktrees, merges and branch deletion on a temp repository, not mocks"
+
+[[check]]
+clause = "C13"
+kind   = "real-input"
+ref    = "tests/validate_real.py"
+
+[[check]]
+clause = "C13"
+kind   = "differential"
+ref    = "docs/validation.md"
+
+[[check]]
+clause = "C7"
+kind   = "human-accept"
+ref    = "human, 2026-11-26: signed off docs/samples/csaw-initial.md and csaw-CLAUDE.md (gate A1)"

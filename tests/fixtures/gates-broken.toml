@@ -1,0 +1,7 @@
+# Control fixture for gate G1: an automated gate with no purpose and no control. Must fail validation.
+
+[[gate]]
+id = "X1"
+kind = "automated"
+run = 'python -c "pass"'
+pass = "exit 0"

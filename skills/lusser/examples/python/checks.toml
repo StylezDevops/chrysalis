@@ -1,0 +1,58 @@
+[[check]]
+clause = "C1"
+kind   = "spec-test"
+ref    = "tests/test_reconcile_spec.py::test_C1_rows_per_balance_transaction"
+note   = "written from clause before implementation, commit 5d2b91"
+
+[[check]]
+clause = "C1"
+kind   = "real-input"
+ref    = "tests/cassettes/stripe_payouts_2026-08.yaml"
+note   = "vcrpy cassette of real live-mode responses for August 2026 (read-only keys), account ids scrubbed"
+
+[[check]]
+clause = "C2"
+kind   = "property"
+ref    = "tests/test_reconcile_props.py"
+note   = "Hypothesis: generated payouts with random transaction sets; sum check holds iff amounts consistent; injected mismatches always land in unmatched.csv with exit 2"
+
+[[check]]
+clause = "C2"
+kind   = "differential"
+ref    = "tests/diff_against_accountant_2026-08.py"
+note   = "our CSV for August vs the accountant's hand-reconciled spreadsheet exported to CSV; every net must match"
+
+[[check]]
+clause = "C2"
+kind   = "human-accept"
+ref    = "M. Lister (accountant), 2026-10-05"
+note   = "imported September output into their software; totals agree with bank statement"
+
+[[check]]
+clause = "C3"
+kind   = "property"
+ref    = "tests/test_reconcile_props.py"
+note   = "every amount cell matches ^-?\\d+\\.\\d{2}$"
+
+[[check]]
+clause = "C4"
+kind   = "property"
+ref    = "tests/test_reconcile_props.py"
+note   = "shuffle API return order → identical output bytes"
+
+[[check]]
+clause = "C5"
+kind   = "real-input"
+ref    = "tests/cassettes/stripe_429_then_ok.yaml"
+note   = "cassette captured by forcing rate limit in test mode; asserts retry then success; a cassette of 5x 5xx asserts exit 3 and no CSV"
+
+[[check]]
+clause = "C6"
+kind   = "differential"
+ref    = "tests/fixtures/accountant_import_template.csv"
+note   = "header row compared byte-for-byte to the template the accountant supplied"
+
+[[check]]
+clause = "C6"
+kind   = "human-accept"
+ref    = "M. Lister (accountant), 2026-10-05"

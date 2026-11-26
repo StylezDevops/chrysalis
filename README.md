@@ -1,0 +1,129 @@
+# Chrysalis
+
+An engineering method for building software with AI coding agents, written down from what already
+worked across real projects, plus the tools that apply it to a new or existing repository without
+touching what is already there.
+
+The idea behind it: an agent does not get to mark its own homework. Every rule here puts a different
+kind of check between the model and the merge: a number measured before and after, a test that has
+been seen to fail, a hook that refuses a known mistake, a human answer to an ambiguous spec.
+
+## What is in the repo
+
+| Path | What it is |
+|---|---|
+| `METHOD.md` | The rules. 16 universal (U1 to U16) and 9 conditional (K1 to K9), each with its evidence. |
+| `docs/discovery.md` | How the rules were found: which projects, which files, what was inferred. |
+| `config/` | `config_project.json` fields and a filled example. |
+| `scripts/chrysalis.py` | The tool: validate, rules, inspect, plan, apply, gates, register check, worktree, check. Standard library only. |
+| `templates/` | What `apply` writes: CLAUDE.md, initial.md, backlog, register, handover, ADR, Definition of Ready and Done, change request, threat model, gates.toml, lusser files. |
+| `skills/` | Claude Code skills: `chrysalis-init` plus 6 more (table below). |
+| `hooks/` | 3 Claude Code PreToolUse hooks, each with tests. |
+| `guardrails/` | The general code-writing guardrails `apply` installs to `~/.claude/` if absent. |
+| `tests/` | Spec tests per clause, lusser tests, the sabotage sweep and the real-repository validation. |
+| `.lusser/` | This repo's own spec, parts ledger and checks. |
+| `gates.toml` | This repo's own gates, each with a control. |
+
+## Using it on a project
+
+Requires Python 3.11 or later and git. Nothing to install.
+
+PowerShell:
+
+```powershell
+git clone https://github.com/StylezDevops/chrysalis.git $HOME\chrysalis
+Copy-Item $HOME\chrysalis\config\config_project.example.json C:\path\to\project\config_project.json
+# edit the config, then:
+python $HOME\chrysalis\scripts\chrysalis.py validate --config C:\path\to\project\config_project.json
+python $HOME\chrysalis\scripts\chrysalis.py plan  C:\path\to\project
+python $HOME\chrysalis\scripts\chrysalis.py apply C:\path\to\project
+```
+
+bash:
+
+```bash
+git clone https://github.com/StylezDevops/chrysalis.git ~/chrysalis
+cp ~/chrysalis/config/config_project.example.json /path/to/project/config_project.json
+# edit the config, then:
+python3 ~/chrysalis/scripts/chrysalis.py validate --config /path/to/project/config_project.json
+python3 ~/chrysalis/scripts/chrysalis.py plan  /path/to/project
+python3 ~/chrysalis/scripts/chrysalis.py apply /path/to/project
+```
+
+`validate` turns every gap or contradiction in the config into a numbered question and exits 2. `apply`
+refuses to run until there are none.
+
+On an existing repository, `apply`:
+
+- creates only files that are absent, using exclusive create;
+- reuses what the repo already has (an ADR folder, a defect register, a gate script, a `.lusser/`)
+  instead of adding a second one;
+- writes a proposal under `.chrysalis/run-<time>/proposals/` for any file that already exists;
+- runs no git command that writes.
+
+The `chrysalis-init` skill walks an agent through the rest with the user: the questions, `initial.md`,
+the first backlog items, the first lusser spec and the project's own gates.
+
+## Installing the skills and hooks
+
+PowerShell:
+
+```powershell
+New-Item -ItemType Directory -Force $HOME\.claude\skills | Out-Null
+Copy-Item -Recurse $HOME\chrysalis\skills\* $HOME\.claude\skills\
+```
+
+bash:
+
+```bash
+mkdir -p ~/.claude/skills
+cp -R ~/chrysalis/skills/* ~/.claude/skills/
+```
+
+The copy overwrites any skill with the same name in `~/.claude/skills`. Hooks are wired by hand; the
+settings snippet is in `hooks/README.md`.
+
+| Skill | What it does |
+|---|---|
+| `chrysalis-init` | Sets up a project on this method with the user, using `chrysalis.py`. |
+| `lusser` | Spec clauses, a part budget and checks that fail differently from an agent; `lusser.py check` enforces them. |
+| `register-loop` | Works a defect register 1 row at a time: measure, prove the detector, fix with a regression test, audit until clean. |
+| `adversarial-assurance` | A review by 6 subagents that each assume the previous one is wrong, producing tests that try to falsify the code. |
+| `epic-orchestrator` | Splits large work into dependency-ordered chunks for isolated subagents, each given only its own brief. |
+| `npm-slopsquat-guard` | Verifies every npm package name against the registry before it reaches an install command. |
+| `audio-plugin-audit` | Read-only review of real-time audio C++ for thread-safety, denormal, NaN and DSP faults. |
+
+## How it was verified
+
+Measured on 2026-11-26, Windows 11, Python 3.14. Each line can be re-run with its command.
+
+| Check | Command | Result |
+|---|---|---|
+| Spec tests for every clause | `python tests/run_all.py --only chrysalis` | 46 tests, all pass |
+| lusser tests | `python tests/run_all.py --only lusser` | 15 tests, all pass |
+| Hook tests | `python tests/run_all.py --only hooks` | 17 block and 17 allow cases, 0 wrong |
+| Evidence: cited files exist and hold their quotes | `python tests/run_all.py --only evidence` | 3 tests, all pass |
+| Each of 13 deliberate defects is caught by a test naming its clause | `python tests/run_all.py --sweep` | 13 of 13 caught |
+| `apply` on copies of 4 real repositories and 1 new project | `python tests/validate_real.py` | 0 files changed or deleted across 5,656; all 5 pass; see `docs/validation.md` |
+| 7 automated gates | `python scripts/chrysalis.py gates run` | 7 pass |
+| Every gate's control goes red | `python scripts/chrysalis.py gates run --controls` | 7 of 7 red |
+| Spec coverage and part budget | `python skills/lusser/scripts/lusser.py check` | OK; 13 clauses covered, 16 of 16 parts |
+
+3 defects were found by the real-repository run and fixed with regression tests; they are in
+`docs/register.md` with their numbers.
+
+The real-repository validation and the evidence test read local copies of the source projects. Their
+paths are in a gitignored file, `tests/evidence_roots.local.json`. On another machine the 2 checks skip,
+and they report a skip, not a pass.
+
+## Licence
+
+MIT. See `LICENSE`.
+
+## Limits
+
+- `apply` gives a project its files and structure. Whether the project then follows the method is down
+  to the people and agents working in it, and the gates they write.
+- The validation copies tracked files only, so assets that exist only as ignored files were not tested.
+- The rules come from my own projects over about 8 months. They are evidence of what worked there,
+  not proof that they generalise.

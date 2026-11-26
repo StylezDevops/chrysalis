@@ -1,0 +1,67 @@
+# Chrysalis: its own gates. Every automated gate has a control that must fail (METHOD U2).
+#   python scripts/chrysalis.py gates validate
+#   python scripts/chrysalis.py gates run
+#   python scripts/chrysalis.py gates run --controls
+
+[[gate]]
+id = "T1"
+purpose = "Every test suite passes: chrysalis spec tests, lusser tests, hook tests, evidence."
+kind = "automated"
+run = 'python tests/run_all.py'
+pass = "exit 0"
+control = 'python tests/run_all.py --sabotage apply-overwrites'
+
+[[gate]]
+id = "S0"
+purpose = "Every sabotage injection is caught by a test that names its clause."
+kind = "automated"
+run = 'python tests/run_all.py --sweep'
+pass = "exit 0"
+control = 'python tests/run_all.py --sweep --include-dud --only chrysalis'
+
+[[gate]]
+id = "F1"
+purpose = "METHOD.md rules carry evidence, conditions parse, templates copy no rule text."
+kind = "automated"
+run = 'python scripts/chrysalis.py check'
+pass = "exit 0"
+control = 'python scripts/chrysalis.py check --templates tests/fixtures/templates-copying'
+
+[[gate]]
+id = "G1"
+purpose = "This gates file itself is well formed."
+kind = "automated"
+run = 'python scripts/chrysalis.py gates validate --file gates.toml'
+pass = "exit 0"
+control = 'python scripts/chrysalis.py gates validate --file tests/fixtures/gates-broken.toml'
+
+[[gate]]
+id = "R1"
+purpose = "Every CLOSED defect row carries its numbers, regression test and follow-up."
+kind = "automated"
+run = 'python scripts/chrysalis.py register check --file docs/register.md --root .'
+pass = "exit 0"
+control = 'python scripts/chrysalis.py register check --file tests/fixtures/register-broken.md --root .'
+
+[[gate]]
+id = "L1"
+purpose = "lusser check passes on this repo's own spec."
+kind = "automated"
+run = 'python skills/lusser/scripts/lusser.py check'
+pass = "exit 0"
+control = 'python tests/lusser_control.py'
+
+[[gate]]
+id = "V1"
+purpose = "apply changes no pre-existing file in copies of real repositories and builds a new project."
+kind = "automated"
+run = 'python tests/validate_real.py'
+pass = "exit 0"
+control = 'python tests/validate_real.py --control'
+timeout = 3600
+
+[[gate]]
+id = "A1"
+purpose = "The project owner accepts what init generates for a real new project."
+kind = "human"
+procedure = "They read docs/samples/csaw-initial.md and docs/samples/csaw-CLAUDE.md and records acceptance, with the date, in .lusser/checks.toml as a human-accept check."

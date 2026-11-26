@@ -1,0 +1,59 @@
+# C++ example, see spec.md for clauses
+
+[[check]]
+clause = "C1"
+kind   = "spec-test"
+ref    = "tests/ParamEventFifo_spec.cpp::C1_push_when_full_rejects"
+note   = "written from clause before implementation, commit 3f9a2c"
+
+[[check]]
+clause = "C2"
+kind   = "spec-test"
+ref    = "tests/ParamEventFifo_spec.cpp::C2_pop_when_empty"
+
+[[check]]
+clause = "C3"
+kind   = "property"
+ref    = "tests/ParamEventFifo_prop.cpp"
+note   = "RapidCheck: random push/pop schedules on two std::threads; invariant = popped sequence is a prefix of pushed sequence"
+
+[[check]]
+clause = "C3"
+kind   = "differential"
+ref    = "tests/ParamEventFifo_diff.cpp"
+note   = "same schedule fed to a std::mutex+std::deque reference; sequences compared"
+
+[[check]]
+clause = "C4"
+kind   = "real-input"
+ref    = "ci/rtsan.yml"
+note   = "CI builds with -fsanitize=realtime; processBlock marked [[clang::nonblocking]]; any lock/alloc/syscall on the audio path fails the build. This is the toolchain checking, not a model."
+
+[[check]]
+clause = "C4"
+kind   = "model-review"
+ref    = "PR review"
+note   = "cheap, still done, does not count toward coverage"
+
+[[check]]
+clause = "C5"
+kind   = "spec-test"
+ref    = "tests/ParamEventFifo_spec.cpp::C5_capacity_validation"
+
+[[check]]
+clause = "C5"
+kind   = "property"
+ref    = "tests/ParamEventFifo_prop.cpp"
+note   = "capacities 0..2^16; construction succeeds iff power of two > 0"
+
+[[check]]
+clause = "C6"
+kind   = "real-input"
+ref    = "ci/matrix.yml"
+note   = "test matrix runs C1–C5 on macOS arm64 and Windows x64 runners"
+
+[[check]]
+clause = "C1"
+kind   = "human-accept"
+ref    = "spec owner, 2026-10-03"
+note   = "automated MIDI CC sweep in Ableton at 96k/32 samples, 20 min, no dropouts, no lost events in the log"
