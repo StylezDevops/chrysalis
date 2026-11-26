@@ -8,6 +8,20 @@ The idea behind it: an agent does not get to mark its own homework. Every rule h
 kind of check between the model and the merge: a number measured before and after, a test that has
 been seen to fail, a hook that refuses a known mistake, a human answer to an ambiguous spec.
 
+The method grew over about 8 months on my own projects. This repository, published in November 2026,
+packages it. `docs/discovery.md` shows which project each rule came from. Measured on 2026-11-26 from
+each project's git history and defect register:
+
+| Project | What it is | Commits | Period | Defects |
+|---|---|---|---|---|
+| MIDAS | Wavetable bass synthesiser, VST3 and AU | 508 | July to September 2026 | 79 bug classes, each with the gate that now catches it |
+| CHRYSOS | Sampler instrument, VST3 and AU | 1,031 | September to November 2026 | 112 rows in the register's Closed table, each with a measured number |
+| Substrate | Music provenance platform | 1,064 | June to November 2026 | 275 of 311 audit rows done, none marked done without numbers |
+
+`lusser` is named after Lusser's product law: a system works only if every part works, so its odds are
+the product of each part's odds. The lusser skill keeps the part count down, gets a human to resolve
+ambiguity in the spec before building, and ties every spec clause to a check.
+
 ## What is in the repo
 
 | Path | What it is |
@@ -22,7 +36,7 @@ been seen to fail, a hook that refuses a known mistake, a human answer to an amb
 | `guardrails/` | The general code-writing guardrails `apply` installs to `~/.claude/` if absent. |
 | `tests/` | Spec tests per clause, lusser tests, the sabotage sweep and the real-repository validation. |
 | `.lusser/` | This repo's own spec, parts ledger and checks. |
-| `gates.toml` | This repo's own gates, each with a control. |
+| `gates.toml` | This repo's own gates. Each automated gate has a control. |
 
 ## Using it on a project
 
@@ -64,6 +78,53 @@ On an existing repository, `apply`:
 The `chrysalis-init` skill walks an agent through the rest with the user: the questions, `initial.md`,
 the first backlog items, the first lusser spec and the project's own gates.
 
+## Using it in a team
+
+So far 1 developer has used it. This is how I see it working for a team.
+
+### The method lives in the repository
+
+Everything `apply` writes is a file in the repo, so a team shares it through git, not through one
+person's setup. Every developer, and every agent session they start, reads the same CLAUDE.md, gates,
+defect register, ADRs and spec. A new joiner gets the rules by cloning. They do not depend on who set
+the project up or which machine they work on.
+
+### Who does what
+
+- A lead answers the questions `validate` raises and resolves ambiguities in each spec, in writing and
+  with a date, before anyone builds.
+- Developers and their agents take backlog items that meet the Definition of Ready, and finish them
+  against the Definition of Done.
+- A reviewer checks the gate results and the register row as well as the diff. The question is "what
+  measured this?", not "does the code look right?".
+- Work passes between people and agent sessions through the handover template, so a session that runs
+  out of context or a developer who goes on leave does not take the state with them.
+
+### Rolling it out
+
+1. Pilot on 1 repository with 1 team. Run `plan`, read what it would do, then `apply`. Answer the
+   questions together.
+2. Put `chrysalis.py gates run` into CI, so a gate blocks a merge for everyone, not only for the person
+   who wrote it.
+3. Put the hooks into the project's `.claude/settings.json`, so every developer's agent refuses the same
+   known mistakes.
+4. Use the register as the team's shared defect list. A defect closes only with a measured number and a
+   regression test that was red before the fix.
+5. After a few weeks, read the register back. A class of defect that keeps coming up becomes a new gate
+   or rule. The team's rules then grow from the team's own defects, the same way these grew from mine.
+
+### As a workshop
+
+The method can be taught in 1 session on a team's own repository: run `apply` live, resolve the
+ambiguities in a first spec, write 1 gate and watch its control go red. People leave with the files in
+their repo and 1 gate they have seen fail.
+
+### What a team rollout would need to test
+
+- Who resolves an ambiguity when several people can.
+- How long the gates take in CI on a large repository.
+- Whether the hooks suit every developer's setup.
+
 ## Installing the skills and hooks
 
 PowerShell:
@@ -83,6 +144,8 @@ cp -R ~/chrysalis/skills/* ~/.claude/skills/
 The copy overwrites any skill with the same name in `~/.claude/skills`. Hooks are wired by hand; the
 settings snippet is in `hooks/README.md`.
 
+Core skills, used by the method:
+
 | Skill | What it does |
 |---|---|
 | `chrysalis-init` | Sets up a project on this method with the user, using `chrysalis.py`. |
@@ -90,6 +153,11 @@ settings snippet is in `hooks/README.md`.
 | `register-loop` | Works a defect register 1 row at a time: measure, prove the detector, fix with a regression test, audit until clean. |
 | `adversarial-assurance` | A review by 6 subagents that each assume the previous one is wrong, producing tests that try to falsify the code. |
 | `epic-orchestrator` | Splits large work into dependency-ordered chunks for isolated subagents, each given only its own brief. |
+
+Other skills I use. They came from the same projects but are domain-specific and not needed for the method:
+
+| Skill | What it does |
+|---|---|
 | `npm-slopsquat-guard` | Verifies every npm package name against the registry before it reaches an install command. |
 | `audio-plugin-audit` | Read-only review of real-time audio C++ for thread-safety, denormal, NaN and DSP faults. |
 
@@ -114,7 +182,8 @@ Measured on 2026-11-26, Windows 11, Python 3.14. Each line can be re-run with it
 
 The real-repository validation and the evidence test read local copies of the source projects. Their
 paths are in a gitignored file, `tests/evidence_roots.local.json`. On another machine the 2 checks skip,
-and they report a skip, not a pass.
+and they report a skip, not a pass. The last full run is in `docs/validation.md`: 4 real repositories
+and 1 new project, 5,656 files, 0 changed or deleted.
 
 ## Licence
 
