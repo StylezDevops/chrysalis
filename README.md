@@ -8,15 +8,35 @@ The idea behind it: an agent does not get to mark its own homework. Every rule h
 kind of check between the model and the merge: a number measured before and after, a test that has
 been seen to fail, a hook that refuses a known mistake, a human answer to an ambiguous spec.
 
-The method grew over about 8 months on my own projects. This repository, published in November 2026,
-packages it. `docs/discovery.md` shows which project each rule came from. Measured on 2026-11-26 from
-each project's git history and defect register:
+## Where it came from
+
+The method began at work. The first version was written on a project I build in my job, called "the
+in-work project" throughout this repo: a data-integration platform built since late 2025, in VS Code
+with AI extensions rather than a dedicated agent tool. It belongs to my employer, so it is not named
+here and none of its code or documents are in this repository. A large share of the original rules
+started there: fail fast on a missing prerequisite, zero warnings, no "for now" code, one
+transformation for every path, every record either written or quarantined, a decision register in each
+ADR.
+
+I then carried the method into my own projects through 2026, and each one made it stricter. Measured
+on 2026-11-26 from each project's git history and defect register:
 
 | Project | What it is | Commits | Period | Defects |
 |---|---|---|---|---|
 | MIDAS | Wavetable bass synthesiser, VST3 and AU | 508 | July to September 2026 | 79 bug classes, each with the gate that now catches it |
 | CHRYSOS | Sampler instrument, VST3 and AU | 1,031 | September to November 2026 | 112 rows in the register's Closed table, each with a measured number |
 | Substrate | Music provenance platform | 1,064 | June to November 2026 | 275 of 311 audit rows done, none marked done without numbers |
+
+MIDAS made "measure first" a hard rule. CHRYSOS added hooks born from incidents, the defect register,
+ADRs and the sabotage gate that proves every gate can fail. Substrate added the docs-currency gate and
+blast-radius classes for live systems.
+
+Chrysalis, published in November 2026, packages all of it. On 2026-11-27 every document and internal
+note in the in-work project was read to its last line. Its practices the later projects had dropped
+came back, and its defects became rules where none existed: fail closed (U17), one outcome per unit of
+work (U18), config checked when it loads (U19), a mechanism counts once it is shown to run (U20), and
+K10 for software that changes data it does not own. `docs/discovery.md` shows which project each rule
+came from.
 
 `lusser` is named after Lusser's product law: a system works only if every part works, so its odds are
 the product of each part's odds. The lusser skill keeps the part count down, gets a human to resolve
@@ -26,13 +46,13 @@ ambiguity in the spec before building, and ties every spec clause to a check.
 
 | Path | What it is |
 |---|---|
-| `METHOD.md` | The rules. 16 universal (U1 to U16) and 9 conditional (K1 to K9), each with its evidence. |
+| `METHOD.md` | The rules. 20 universal (U1 to U20) and 10 conditional (K1 to K10), each with its evidence. |
 | `docs/discovery.md` | How the rules were found: which projects, which files, what was inferred. |
 | `config/` | `config_project.json` fields and a filled example. |
 | `scripts/chrysalis.py` | The tool: validate, rules, inspect, plan, apply, gates, register check, worktree (new, finish, sweep), check. Standard library only. |
-| `templates/` | What `apply` writes: CLAUDE.md, initial.md, backlog, register, handover, ADR, Definition of Ready and Done, change request, threat model, gates.toml, lusser files. |
+| `templates/` | What `apply` writes: CLAUDE.md, initial.md, backlog, register, handover, ADR, Definition of Ready and Done, bug classes, names that do not exist, verification, fix, audit and change records, gates.toml and lusser files; plus a change request and runbook for live systems and a threat model where money, personal data or auth are involved. |
 | `skills/` | Claude Code skills: `chrysalis-init` plus 6 more (table below). |
-| `hooks/` | 3 Claude Code PreToolUse hooks, each with tests. |
+| `hooks/` | 4 Claude Code PreToolUse hooks, each with tests. |
 | `guardrails/` | The general code-writing guardrails `apply` installs to `~/.claude/` if absent. |
 | `tests/` | Spec tests per clause, lusser tests, the sabotage sweep and the real-repository validation. |
 | `.lusser/` | This repo's own spec, parts ledger and checks. |
@@ -78,9 +98,25 @@ On an existing repository, `apply`:
 The `chrysalis-init` skill walks an agent through the rest with the user: the questions, `initial.md`,
 the first backlog items, the first lusser spec and the project's own gates.
 
-## Using it in a team
+## Tooling, and why it is not the point
 
-So far 1 developer has used it. This is how I see it working for a team.
+My own setup makes some tools mandatory wherever they are available. Every shell command goes through
+[rtk](https://github.com/rtk-ai/rtk), which strips noise from command output so an agent spends its
+context on what matters. Code is read and edited through [Serena](https://github.com/oraios/serena),
+which works on symbols through a language server instead of reading whole files. The agent is Claude
+Code, and the hooks in `hooks/` are Claude Code PreToolUse hooks.
+
+That is simply what I use at the moment. Chrysalis does not depend on any of it: `chrysalis.py` and
+`lusser.py` need only Python and git, and the rules never name a tool. Swap in whatever you prefer: a
+different agent, editor, output filter or code index. The in-work project shows it carries over: the
+method started there, in VS Code with AI extensions, before any of these tools were in use.
+
+What matters is the thinking behind the method. The agent does not mark its own homework. A check
+counts once it has been seen to fail. A defect becomes structure. A missing input stops the work. A
+claim needs evidence. Any tool that helps you hold to those is a good fit; one that gets in the way is
+not.
+
+## Using it in a team
 
 ### The method lives in the repository
 
@@ -163,27 +199,28 @@ Other skills I use. They came from the same projects but are domain-specific and
 
 ## How it was verified
 
-Measured on 2026-11-26, Windows 11, Python 3.14. Each line can be re-run with its command.
+Measured on 2026-11-27, Windows 11, Python 3.14. Each line can be re-run with its command.
 
 | Check | Command | Result |
 |---|---|---|
-| Spec tests for every clause | `python tests/run_all.py --only chrysalis` | 46 tests, all pass |
+| Spec tests for every clause | `python tests/run_all.py --only chrysalis` | 51 tests, all pass |
 | lusser tests | `python tests/run_all.py --only lusser` | 15 tests, all pass |
-| Hook tests | `python tests/run_all.py --only hooks` | 17 block and 17 allow cases, 0 wrong |
+| Hook tests | `python tests/run_all.py --only hooks` | 24 block and 24 allow cases, 0 wrong |
 | Evidence: cited files exist and hold their quotes | `python tests/run_all.py --only evidence` | 3 tests, all pass |
-| Each of 13 deliberate defects is caught by a test naming its clause | `python tests/run_all.py --sweep` | 13 of 13 caught |
-| `apply` on copies of 4 real repositories and 1 new project | `python tests/validate_real.py` | 0 files changed or deleted across 5,656; all 5 pass; see `docs/validation.md` |
+| Each of 15 deliberate defects is caught by a test naming its clause | `python tests/run_all.py --sweep` | 15 of 15 caught |
+| `apply` on copies of 4 real repositories and 1 new project | `python tests/validate_real.py` | 0 files changed or deleted across 5,709; all 5 pass; see `docs/validation.md` |
 | 7 automated gates | `python scripts/chrysalis.py gates run` | 7 pass |
 | Every gate's control goes red | `python scripts/chrysalis.py gates run --controls` | 7 of 7 red |
-| Spec coverage and part budget | `python skills/lusser/scripts/lusser.py check` | OK; 13 clauses covered, 16 of 16 parts |
+| Spec coverage and part budget | `python skills/lusser/scripts/lusser.py check` | OK; 14 clauses covered, 16 of 16 parts |
 
-3 defects were found by the real-repository run and fixed with regression tests; they are in
-`docs/register.md` with their numbers.
+5 defects have been found in Chrysalis itself and fixed with regression tests: 3 by the
+real-repository run, and 2 where a byte-order mark written by PowerShell broke file reading. They are
+in `docs/register.md` with their numbers.
 
 The real-repository validation and the evidence test read local copies of the source projects. Their
 paths are in a gitignored file, `tests/evidence_roots.local.json`. On another machine the 2 checks skip,
 and they report a skip, not a pass. The last full run is in `docs/validation.md`: 4 real repositories
-and 1 new project, 5,656 files, 0 changed or deleted.
+and 1 new project, 5,709 files, 0 changed or deleted.
 
 ## Licence
 
@@ -194,5 +231,5 @@ MIT. See `LICENSE`.
 - `apply` gives a project its files and structure. Whether the project then follows the method is down
   to the people and agents working in it, and the gates they write.
 - The validation copies tracked files only, so assets that exist only as ignored files were not tested.
-- The rules come from my own projects over about 8 months. They are evidence of what worked there,
-  not proof that they generalise.
+- The rules come from 1 work project and 3 of my own over about a year. They are evidence of what
+  worked there, not proof that they generalise.

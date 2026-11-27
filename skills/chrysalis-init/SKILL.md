@@ -46,6 +46,8 @@ with the user:
 - **Risks and how they are checked**: every risk names the gate in `gates.toml`, or the human check,
   that would catch it. A risk with no check is an open question.
 - **Approach**: the first milestone, what "working" means for it, and the first 3 to 5 backlog items.
+- **Data journeys**, when K10 is in force: for each path that moves data, the source format, each
+  transform, the destination types, required fields, and what the write method leaves to defaults.
 
 For an existing repo, read the existing contract files (CLAUDE.md, AGENTS.md, specs, ADRs, register)
 first and write initial.md from what is already decided. Do not reopen settled decisions.
@@ -55,9 +57,13 @@ first and write initial.md from what is already decided. Do not reopen settled d
 1. Write the first epic and its stories in `docs/backlog.md`, each with observable acceptance criteria.
 2. Write the first milestone's `.lusser/spec.md`: clauses, ambiguities as questions, a part budget. Ask
    the ambiguities and stop until they are answered (U10).
-3. Add the project's own gates to `gates.toml`, each with a control that makes it fail. Run
+3. Add the project's own gates to `gates.toml`, each with a control that makes it fail. The template
+   carries commented examples (analysis at zero, mutation threshold, dependency audit, secret scan,
+   skip counts); uncomment the ones that fit the stack and write their controls. Run
    `chrysalis.py gates run --controls` and show that every control goes red before calling a gate real
    (U2).
+4. Start `docs/verification.md` with what the available test data will and will not exercise, so the
+   first green run is not read as more coverage than it is.
 
 ## 6. Proposals for existing files
 

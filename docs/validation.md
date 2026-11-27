@@ -1,6 +1,6 @@
 # Validation against real repositories
 
-Measured 2026-11-27 11:32 by `python tests/validate_real.py`. Regenerated on every run; do not edit by hand.
+Measured 2026-11-27 12:39 by `python tests/validate_real.py`. Regenerated on every run; do not edit by hand.
 
 Method: each repository was copied with `git clone --depth 1` into a temp folder (tracked files only,
 so ignored and secret files never left the source). Every file was hashed before and after

@@ -1,12 +1,13 @@
 # Discovery report
 
-Date: 2026-11-25. Read-only investigation. Nothing in any source project was changed.
+Date: 2026-11-25; the in-work project section added 2026-11-27. Read-only investigation. Nothing in
+any source project was changed.
 
 ## Scope
 
 | Project | Kind | History | Evidence read |
 |---|---|---|---|
-| In-work project | the source of a large share of the original rules and methodology; not named here | | |
+| In-work project | data-integration platform at work, where the method began; not named here | from late 2025 | every doc and internal note in full, agent rules and memories, code mapped and sampled (see its section below) |
 | Client web projects | evidence read under their own change-control rules, not listed here | | |
 | Substrate | owned web3 product (FastAPI, SvelteKit, Solidity) | 1047 commits, 2026-06-13 to now | CLAUDE.md, .lusser, register, pre-push, 81 memories |
 | MIDAS | owned audio plugin (C++/JUCE) | 2026-07-02 to 2026-09-11 | CLAUDE.md, VERIFICATION.md, BUG_CLASSES.md, 81 memories |
@@ -17,16 +18,18 @@ Two subagents read the source projects. 9 of their claims were checked against t
 
 ## The method, as it evolved
 
-INFERRED from dates. The same method gets stricter with each project. A large share of the original
-rules and methodology came from an in-work project that this report does not name; the projects below
-carried that material forward and added to it.
+INFERRED from dates. The same method gets stricter with each project.
 
+0. **The in-work project (from late 2025):** where the method began. Prerequisite validation, zero warnings, a ban on "for now" code, one transformation for every path, records written or quarantined and never dropped, and ADRs with a register of numbered decisions. Its rules were prose in agent instruction files, with no hooks, which is why several of them were broken in practice (see its section below).
 1. **Client web work (from April):** written rules arrive: a test pyramid, a threat model for each feature, attack scenarios that must fail, performance budgets, conventional commits.
 2. **MIDAS (July):** "measure before reasoning" becomes a hard rule. Numbered gates. A bug-class catalogue (`docs/BUG_CLASSES.md`, C1 to about C81).
 3. **CHRYSOS (September):** adds PreToolUse hooks born from incidents, ADRs, the defect register, the S0 sabotage gate that proves every gate can fail, gate parity checks and lusser.
 4. **Substrate (same period):** carry the loop across as the `register-loop` skill. They add a docs-currency gate, a fail-closed pre-push path matrix, and blast-radius classes for live systems.
 
 ## Universal rules (found in several projects)
+
+The numbers in this table are the working numbers from the first discovery pass. `METHOD.md`
+renumbered them and added U14 to U20 later, so cite rules by their `METHOD.md` ID, not by these.
 
 | # | Rule | Evidence |
 |---|---|---|
