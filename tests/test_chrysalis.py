@@ -163,6 +163,17 @@ class Rules(unittest.TestCase):
         ids = re.findall(r"(?m)^(K\d+)\s", r.stdout)
         self.assertEqual(ids, [f"K{n}" for n in range(1, 11)])
 
+    def test_C2_a_flag_that_is_not_a_bool_is_refused_not_read_as_true(self):
+        sys.path.insert(0, str(ROOT / "scripts"))
+        import chrysalis
+        cond = chrysalis.Condition("risk.auth")
+        self.assertTrue(cond.evaluate({"risk": {"auth": True}}))
+        self.assertFalse(cond.evaluate({"risk": {"auth": False}}))
+        self.assertFalse(cond.evaluate({"risk": {}}))
+        for bad in ("false", 0, [], "yes"):
+            with self.subTest(value=bad), self.assertRaises(ValueError):
+                cond.evaluate({"risk": {"auth": bad}})
+
 
 # ------------------------------------------------------------------ C4, C5, C6 existing repo
 EXISTING = {
@@ -238,6 +249,29 @@ class ExistingRepo(unittest.TestCase):
         for needle in ["CLAUDE.md", ".claude/settings.json", ".claude/hooks/guard.py", ".lusser",
                        "decisions", "docs/AUDIT_REGISTER.md", "tools/ci_local.bat", "feature/x"]:
             self.assertIn(needle, found, needle)
+
+    def test_C6_folders_past_the_depth_limit_are_reported_and_reachable(self):
+        deep = self.repo / "services" / "api" / "v1" / "docs"
+        deep.mkdir(parents=True)
+        (deep / "REGISTER.md").write_text("# R\n", encoding="utf-8")
+        shallow = json.loads(run("inspect", self.repo).stdout)
+        self.assertIn("services/api/v1/docs", shallow["dirs_not_walked"])
+        self.assertNotIn("services/api/v1/docs/REGISTER.md", shallow["assets"].get("register", []))
+        deep_inv = json.loads(run("inspect", self.repo, "--max-depth", "6").stdout)
+        self.assertEqual(deep_inv["dirs_not_walked"], [])
+        self.assertIn("services/api/v1/docs/REGISTER.md", deep_inv["assets"].get("register", []))
+        r = run("plan", self.repo, "--config", self.cfg, "--home", self.home)
+        self.assertIn("not searched", r.stdout)
+
+    def test_C4_no_home_writes_nothing_outside_the_repo(self):
+        r = run("apply", self.repo, "--config", self.cfg, "--home", self.home, "--no-home")
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertFalse(self.home.exists(), "apply wrote to the home folder despite --no-home")
+
+    def test_C4_plan_names_the_home_write_before_apply_makes_it(self):
+        r = run("plan", self.repo, "--config", self.cfg, "--home", self.home)
+        self.assertIn("engineering-guardrails.md (outside the repo", r.stdout)
+        self.assertFalse(self.home.exists(), "plan wrote to the home folder")
 
     def test_C6_register_loop_config_is_not_a_register(self):
         # Register row R-1: found on the CHRYSOS copy, where case-insensitive matching took
@@ -477,6 +511,14 @@ class Register(unittest.TestCase):
         r = self.check("| R-2 | OPEN | slow | ms | 900 | | | |\n")
         self.assertEqual(r.returncode, 0, r.stdout)
 
+    def test_C9_escaped_pipe_and_code_span_pipe_stay_inside_their_cell(self):
+        rows = ("| R-1 | CLOSED | split on `a|b` and a \\| c | crashes | 5 | 0 | tests/t.py | rule: U4 |\n"
+                "| R-2 | CLOSED | `x|y` | crashes | 5 | 5 | tests/t.py | rule: U4 |\n")
+        r = self.check(rows, files=["tests/t.py"])
+        self.assertEqual(r.returncode, 1, r.stdout)
+        self.assertNotIn("R-1", r.stdout, "a pipe inside a cell shifted R-1's columns")
+        self.assertIn("R-2: CLOSED but the measurement did not move (5)", r.stdout)
+
 
 # ------------------------------------------------------------------ C12 worktree procedure
 class Worktrees(unittest.TestCase):
@@ -503,6 +545,37 @@ class Worktrees(unittest.TestCase):
         self.assertEqual(r.returncode, 0, r.stdout)
         self.assertIn(head, r.stdout)
         self.assertTrue((self.wt_root / "job1" / "a.txt").exists())
+
+    def use_trunk(self, config_text):
+        git(self.repo, "branch", "-m", "main", "trunk")
+        if config_text is not None:
+            (self.repo / "config_project.json").write_text(config_text, encoding="utf-8")
+
+    def test_C12_base_defaults_to_the_configured_default_branch(self):
+        self.use_trunk('{"repo": {"default_branch": "trunk"}}')
+        r = self.wt("new", "job-trunk")
+        self.assertEqual(r.returncode, 0, r.stdout)
+        self.assertIn("trunk", r.stdout)
+        self.assertIn("config_project.json", r.stdout, "the output does not say where the base came from")
+
+    def test_C12_explicit_base_overrides_the_config(self):
+        self.use_trunk('{"repo": {"default_branch": "nowhere"}}')
+        r = run("worktree", "new", "job-x", "--repo", self.repo, "--root", self.wt_root, "--base", "trunk")
+        self.assertEqual(r.returncode, 0, r.stdout)
+
+    def test_C12_unreadable_config_fails_closed(self):
+        self.use_trunk("{not json")
+        r = self.wt("new", "job-bad")
+        self.assertEqual(r.returncode, 1, r.stdout)
+        self.assertIn("config_project.json", r.stdout)
+        self.assertFalse((self.wt_root / "job-bad").exists())
+
+    def test_C12_sweep_uses_the_configured_base(self):
+        self.use_trunk('{"repo": {"default_branch": "trunk"}}')
+        self.assertEqual(self.wt("new", "job-sw").returncode, 0)
+        r = run("worktree", "sweep", "--repo", self.repo, "--apply")
+        self.assertEqual(r.returncode, 0, r.stdout)
+        self.assertNotIn("agent/job-sw", git(self.repo, "branch", "--list"))
 
     def test_C12_finish_refuses_an_unmerged_branch(self):
         self.assertEqual(self.wt("new", "job2").returncode, 0)

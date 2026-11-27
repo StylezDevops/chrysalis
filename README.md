@@ -56,7 +56,7 @@ ambiguity in the spec before building, and ties every spec clause to a check.
 | `skills/` | Claude Code skills: `chrysalis-init` plus 6 more (table below). |
 | `hooks/` | 4 Claude Code PreToolUse hooks and a git pre-commit form of the deferral-marker hook, each with tests. |
 | `.github/workflows/ci.yml` | Every gate that needs no local data, with its control, on Linux and Windows; and the quick start below on an empty project. |
-| `guardrails/` | The general code-writing guardrails `apply` installs to `~/.claude/` if absent. |
+| `guardrails/` | The general code-writing guardrails `apply` installs to `~/.claude/` if absent (`--no-home` skips it). |
 | `tests/` | Spec tests per clause, lusser tests, the sabotage sweep and the real-repository validation. |
 | `.lusser/` | This repo's own spec, parts ledger and checks. |
 | `gates.toml` | This repo's own gates. Each automated gate has a control. |
@@ -97,6 +97,10 @@ On an existing repository, `apply`:
   instead of adding a second one;
 - writes a proposal under `.chrysalis/run-<time>/proposals/` for any file that already exists;
 - runs no git command that writes.
+
+It searches 3 folder levels for existing assets and lists any deeper folder it skipped; in a monorepo,
+pass `--max-depth` to search further. Outside the repo it writes only `~/.claude/engineering-guardrails.md`,
+and only if that file is absent. `plan` names that file first, and `--no-home` skips it.
 
 To see the result without running anything, open the latest
 [CI run](https://github.com/StylezDevops/chrysalis/actions/workflows/ci.yml): the "README quick start"
@@ -214,7 +218,7 @@ measured on 2026-11-27, Windows 11, Python 3.14. Each line can be re-run with it
 
 | Check | Command | Result |
 |---|---|---|
-| Spec tests for every clause | `python tests/run_all.py --only chrysalis` | 53 tests, all pass |
+| Spec tests for every clause | `python tests/run_all.py --only chrysalis` | 62 tests, all pass |
 | lusser tests | `python tests/run_all.py --only lusser` | 15 tests, all pass |
 | Hook tests | `python tests/run_all.py --only hooks` | 28 block and 28 allow cases, 0 wrong |
 | Evidence: cited files exist and hold their quotes | `python tests/run_all.py --only evidence` | 3 tests, all pass |
@@ -222,12 +226,14 @@ measured on 2026-11-27, Windows 11, Python 3.14. Each line can be re-run with it
 | `apply` on copies of 4 real repositories and 1 new project | `python tests/validate_real.py` | 0 files changed or deleted across 5,709; all 5 pass; see `docs/validation.md` |
 | 7 automated gates | `python scripts/chrysalis.py gates run` | 7 pass |
 | Every gate's control goes red | `python scripts/chrysalis.py gates run --controls` | 7 of 7 red |
-| Spec coverage and part budget | `python skills/lusser/scripts/lusser.py check` | OK; 14 clauses covered, 20 of 20 parts |
+| Spec coverage and part budget | `python skills/lusser/scripts/lusser.py check` | OK; 14 clauses covered, 23 of 23 parts |
 
-7 defects have been found in Chrysalis itself and fixed with regression tests: 3 by the
+10 defects have been found in Chrysalis itself and fixed with regression tests: 3 by the
 real-repository run, 2 where a byte-order mark written by PowerShell broke file reading, and 2 by
 running the suites in a fresh clone before CI was added (a skipped test reported as a pass, and the
-validation crashing instead of skipping). They are in `docs/register.md` with their numbers.
+validation crashing instead of skipping), and 3 from an outside code review (worktrees ignoring the
+configured default branch, a pipe inside a table cell shifting the register's columns, and a silent
+folder-depth limit). They are in `docs/register.md` with their numbers.
 
 The real-repository validation and the evidence test read local copies of the source projects. Their
 paths are in a gitignored file, `tests/evidence_roots.local.json`. On another machine, CI included, the

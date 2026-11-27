@@ -274,7 +274,10 @@ class Condition:
             return value == node[2]
         if op == "in":
             return node[1] in (value or [])
-        return bool(value)
+        if value is None or isinstance(value, bool):
+            return bool(value)
+        # A bare path is a flag. "false" or 0 here would read as true, so anything but a bool is refused (U17).
+        raise ValueError(f"{node[1]} must be true or false, got {value!r}")
 
 
 def select_rules(cfg, method_text=None):
@@ -318,13 +321,22 @@ LANG_BY_MANIFEST = {"package.json": "javascript/typescript", "pyproject.toml": "
                     "pom.xml": "java", "build.gradle": "java/kotlin"}
 
 
-def walk_files(repo: pathlib.Path, max_depth=3):
-    """Relative POSIX paths up to max_depth, skipping vendored and build trees. Never opens a file."""
+DEFAULT_DEPTH = 3
+
+
+def walk_files(repo: pathlib.Path, max_depth=DEFAULT_DEPTH, unwalked=None):
+    """Relative POSIX paths up to max_depth, skipping vendored and build trees. Never opens a file.
+    Directories cut off by the depth limit are appended to unwalked, so the limit is reported, not silent."""
     out = []
     for dirpath, dirnames, filenames in os.walk(repo):
         rel_dir = pathlib.Path(dirpath).relative_to(repo)
         depth = len(rel_dir.parts)
-        dirnames[:] = [d for d in dirnames if d not in SKIP_DIRS and depth < max_depth]
+        kept = [d for d in dirnames if d not in SKIP_DIRS]
+        if depth >= max_depth:
+            if unwalked is not None:
+                unwalked.extend((rel_dir / d).as_posix() for d in kept)
+            kept = []
+        dirnames[:] = kept
         for f in filenames:
             out.append((rel_dir / f).as_posix())
     return out
@@ -339,8 +351,9 @@ def git_read(repo, *args):
         return ""
 
 
-def inspect(repo: pathlib.Path) -> dict:
-    files = [] if sabotaged("inspect-blind") else walk_files(repo)
+def inspect(repo: pathlib.Path, max_depth=DEFAULT_DEPTH) -> dict:
+    unwalked = []
+    files = [] if sabotaged("inspect-blind") else walk_files(repo, max_depth, unwalked)
     assets = {}
     for kind, patterns in ASSET_PATTERNS.items():
         # Case-sensitive on purpose: fnmatch.fnmatch folds case on Windows, which took
@@ -364,6 +377,8 @@ def inspect(repo: pathlib.Path) -> dict:
         "languages_detected": langs,
         "assets": assets,
         "files_seen": len(files),
+        "depth_limit": max_depth,
+        "dirs_not_walked": sorted(unwalked),
         "secret_like_files_skipped": sum(1 for f in files if SECRET_NAME.search(f.rsplit("/", 1)[-1])),
     }
 
@@ -434,8 +449,8 @@ def render(template: str, cfg: dict, rules, framework_path: str) -> str:
     return out
 
 
-def plan(repo: pathlib.Path, cfg: dict, framework_path: str):
-    inv = inspect(repo)
+def plan(repo: pathlib.Path, cfg: dict, framework_path: str, max_depth=DEFAULT_DEPTH):
+    inv = inspect(repo, max_depth)
     rule_ids = {rid for rid, _ in select_rules(cfg)}
     actions = []
     for target, template, equivalent, needs in TARGETS:
@@ -499,7 +514,15 @@ def cmd_apply(args, write: bool) -> int:
         print(f"not a directory: {repo}")
         return 1
     framework_path = (cfg.get("framework") or {}).get("path") or str(ROOT)
-    inv, actions = plan(repo, cfg, framework_path)
+    inv, actions = plan(repo, cfg, framework_path, args.max_depth)
+    if inv["dirs_not_walked"]:
+        print(f"NOTE {len(inv['dirs_not_walked'])} folder(s) deeper than {args.max_depth} levels were not "
+              f"searched for existing assets (first: {inv['dirs_not_walked'][0]}); raise --max-depth to "
+              f"include them")
+    home = None if args.no_home else (pathlib.Path(args.home) if args.home else pathlib.Path.home())
+    guard = home / ".claude" / "engineering-guardrails.md" if home else None
+    if guard and GUARDRAILS.exists() and not guard.exists() and not write:
+        print(f"CREATE {guard} (outside the repo; --no-home skips it)")
     stamp = dt.datetime.now(dt.timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
     run_dir = repo / ".chrysalis" / f"run-{stamp}"
     for verb, target, note, text in actions:
@@ -516,10 +539,8 @@ def cmd_apply(args, write: bool) -> int:
         write_new(run_dir / "inventory.json", json.dumps(inv, indent=2) + "\n")
         write_new(run_dir / "rules.txt", "\n".join(f"{r} {t}" for r, t in select_rules(cfg)) + "\n")
         write_new(run_dir / "plan.txt", "\n".join(f"{a[0]} {a[1]}" for a in actions) + "\n")
-        home = pathlib.Path(args.home) if args.home else pathlib.Path.home()
-        guard = home / ".claude" / "engineering-guardrails.md"
-        if GUARDRAILS.exists() and write_new(guard, GUARDRAILS.read_text(encoding="utf-8")):
-            print(f"CREATE {guard}")
+        if guard and GUARDRAILS.exists() and write_new(guard, GUARDRAILS.read_text(encoding="utf-8")):
+            print(f"CREATE {guard} (outside the repo; --no-home skips it)")
         print(f"Run record: {run_dir.relative_to(repo).as_posix()}")
         if sabotaged("apply-stages"):
             git_run(repo, "add", "-A")
@@ -592,6 +613,39 @@ def cmd_gates(args) -> int:
 
 
 # ======================================================================= register
+def split_row(line: str) -> list[str]:
+    """Cells of a Markdown table row. A pipe escaped as \\| or inside a `code span` stays in its cell."""
+    cells, cell, i, tick = [], [], 0, 0
+    text = line.strip()
+    while i < len(text):
+        ch = text[i]
+        if ch == "\\" and i + 1 < len(text) and text[i + 1] == "|":
+            cell.append("|")
+            i += 2
+            continue
+        if ch == "`":
+            run_len = len(text[i:]) - len(text[i:].lstrip("`"))
+            if not tick:
+                tick = run_len if text.find("`" * run_len, i + run_len) != -1 else 0
+            elif run_len == tick:
+                tick = 0
+            cell.append("`" * run_len)
+            i += run_len
+            continue
+        if ch == "|" and not tick:
+            cells.append("".join(cell).strip())
+            cell = []
+        else:
+            cell.append(ch)
+        i += 1
+    cells.append("".join(cell).strip())
+    if text.startswith("|"):
+        cells = cells[1:]
+    if text.endswith("|") and not text.endswith("\\|"):
+        cells = cells[:-1]
+    return cells
+
+
 def cmd_register(args) -> int:
     path = pathlib.Path(args.file)
     root = pathlib.Path(args.root) if args.root else path.resolve().parents[1]
@@ -599,7 +653,7 @@ def cmd_register(args) -> int:
     for line in path.read_text(encoding="utf-8-sig").splitlines():
         if not line.strip().startswith("|"):
             continue
-        cells = [c.strip() for c in line.strip().strip("|").split("|")]
+        cells = split_row(line)
         if header is None:
             header = [c.lower() for c in cells]
             continue
@@ -657,7 +711,7 @@ def cmd_check(args) -> int:
     for line in text.splitlines():
         m = re.match(r"^\|\s*(K\d+)\s*\|(.*)\|\s*$", line)
         if m:
-            cells = [c.strip() for c in m.group(2).split("|")]
+            cells = split_row(line)[1:]
             if len(cells) < 3 or not cells[-1]:
                 problems.append(f"{m.group(1)}: no evidence cell")
             try:
@@ -696,8 +750,34 @@ def git_run(repo, *args):
     return r.returncode, (r.stdout + r.stderr).strip()
 
 
+def resolve_base(repo: pathlib.Path, explicit: str | None) -> tuple[str | None, str]:
+    """(base branch, where it came from): --base, then repo.default_branch in the repo's
+    config_project.json, then "main". An unreadable config is an error, not a reason to guess (U17)."""
+    if explicit:
+        return explicit, "--base"
+    cfg = repo / "config_project.json"
+    if cfg.is_file():
+        try:
+            branch = (json.loads(cfg.read_text(encoding="utf-8-sig")).get("repo") or {}).get("default_branch")
+        except (json.JSONDecodeError, AttributeError, OSError) as e:
+            return None, f"{cfg} could not be read ({e}); pass --base or fix the config"
+        if isinstance(branch, str) and branch.strip():
+            return branch.strip(), "repo.default_branch in config_project.json"
+    return "main", "default (no --base and no repo.default_branch in config_project.json)"
+
+
 def cmd_worktree(args) -> int:
     repo = pathlib.Path(args.repo).resolve()
+    base, source = resolve_base(repo, args.base)
+    if base is None:
+        print(f"FAIL {source}")
+        return 1
+    code, out = git_run(repo, "rev-parse", "--verify", "--quiet", f"{base}^{{commit}}")
+    if code:
+        print(f"FAIL base branch {base!r} ({source}) does not exist in {repo}")
+        return 1
+    args.base = base
+    print(f"base branch: {base} ({source})")
     if args.action == "sweep":
         return worktree_sweep(repo, args.base, args.apply)
     if not args.name:
@@ -816,14 +896,19 @@ def main(argv=None) -> int:
     p.add_argument("--config")
     p.add_argument("--list-conditions", action="store_true")
 
+    depth_help = f"folder levels searched for existing assets (default {DEFAULT_DEPTH})"
     p = sub.add_parser("inspect")
     p.add_argument("repo")
+    p.add_argument("--max-depth", type=int, default=DEFAULT_DEPTH, help=depth_help)
 
     for name in ("plan", "apply"):
         p = sub.add_parser(name)
         p.add_argument("repo")
         p.add_argument("--config")
+        p.add_argument("--max-depth", type=int, default=DEFAULT_DEPTH, help=depth_help)
         p.add_argument("--home", help="home folder for installing the guardrails file (default: yours)")
+        p.add_argument("--no-home", action="store_true",
+                       help="write nothing outside the repo: skip installing the guardrails file")
 
     p = sub.add_parser("gates")
     p.add_argument("action", choices=["validate", "run"])
@@ -846,7 +931,8 @@ def main(argv=None) -> int:
     p.add_argument("--build-dir", help="finish: the agent's build directory outside the worktree, removed too")
     p.add_argument("--apply", action="store_true", help="sweep: remove what it lists (default: dry run)")
     p.add_argument("--repo", default=".")
-    p.add_argument("--base", default="main")
+    p.add_argument("--base", help="base branch (default: repo.default_branch in the repo's "
+                                  "config_project.json, else main)")
     p.add_argument("--root", help="folder that holds the worktrees (default: <repo>-worktrees beside it)")
 
     args = ap.parse_args(argv)
@@ -877,7 +963,7 @@ def main(argv=None) -> int:
             print(f"{rid}  {title}")
         return 0
     if args.cmd == "inspect":
-        print(json.dumps(inspect(pathlib.Path(args.repo).resolve()), indent=2))
+        print(json.dumps(inspect(pathlib.Path(args.repo).resolve(), args.max_depth), indent=2))
         return 0
     if args.cmd in ("plan", "apply"):
         return cmd_apply(args, write=args.cmd == "apply")

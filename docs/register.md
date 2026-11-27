@@ -15,6 +15,15 @@ One row per defect (METHOD U3). Rows are never renumbered or deleted. Checked by
 | R-6 | CLOSED | `tests/run_all.py` printed PASS for the evidence suite when 2 of its 3 tests were skipped (any machine without the local source copies), against U2's "a test that cannot run reports itself skipped" | suites reported as plain PASS while holding skipped tests, fresh clone | 1 | 0 | tests/test_chrysalis.py::test_C8_suite_with_skipped_tests_is_not_reported_as_plain_pass | rule: the runner reads the skip count from every unittest log; found by running the suites in a fresh clone before adding CI |
 | R-7 | CLOSED | `tests/validate_real.py` crashed with FileNotFoundError on a machine without `tests/evidence_roots.local.json`, while the README said it skips | tracebacks from validate_real.py with no local roots file | 1 | 0 | tests/test_chrysalis.py::test_C13_validation_without_local_copies_skips_with_a_nonzero_exit | rule: a missing input is a named skip with exit 3, never 0 (U2, U17); CI leaves V1 out by name |
 
+| R-8 | CLOSED | `worktree` ignored `repo.default_branch` and always used `main`, so `new` and `sweep` failed on a repo whose default branch is `master`, `trunk` or `develop` unless `--base` was passed | worktree tests failing on a repo whose only branch is `trunk`, with the config naming it | 3 | 0 | tests/test_chrysalis.py::test_C12_base_defaults_to_the_configured_default_branch | rule: base comes from --base, then the config, then main, and the output names the source; an unreadable config fails closed (U17, U19) |
+| R-9 | CLOSED | `register check` split table rows on every pipe, so an escaped pipe or a pipe inside a code span shifted the columns and misread before, after and test | register rows misread in the regression fixture | 1 | 0 | tests/test_chrysalis.py::test_C9_escaped_pipe_and_code_span_pipe_stay_inside_their_cell | rule: one Markdown row splitter, used by register check and the K-table check |
+| R-10 | CLOSED | `inspect` stopped at 3 folder levels without saying so, so assets deeper in a monorepo were missed silently | folders cut off by the depth limit and not reported, test repo | 1 | 0 | tests/test_chrysalis.py::test_C6_folders_past_the_depth_limit_are_reported_and_reachable | rule: the inventory lists every folder it did not walk, plan prints a note, and --max-depth raises the limit (U13) |
+
+R-8 to R-10 came from an outside review of `chrysalis.py` on 2026-11-27. The same review raised 2
+points that were not defects and were hardened anyway: a K-table flag that is not true or false now
+raises instead of being read as truthy (config validation already rejected such values), and `plan`
+names the guardrails file it would write to the home folder, with `--no-home` to skip it.
+
 R-4 and R-5 were held at the 14-part budget until the budget was raised to 16 (2026-11-26), then fixed
 with regression tests that failed before the fix.
 

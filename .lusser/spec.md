@@ -4,7 +4,7 @@ Context: the method already exists across my projects, including MIDAS, Substrat
 CHRYSOS (see docs/discovery.md). This repo extracts it into 1 canonical, configurable source
 that can be cloned into a new project or laid over an existing one without damaging it.
 
-Budget: 20 parts
+Budget: 23 parts
 Assumed p: 0.95
 
 ## Clauses
@@ -58,3 +58,5 @@ Assumed p: 0.95
       Resolution: Approved as proposed, with its good practices added as well. It is referenced only as "the in-work project". (human, 2026-11-27)
 - A16. Q: Make the method checkable by outsiders: CI on Linux and Windows running every gate that needs no local data with its control, a git pre-commit form of the deferral hook for people not on Claude Code, and the 2 defects (R-6, R-7) a fresh-clone run found. This takes 4 parts; raise the budget from 16 to 20?
       Resolution: Approved; budget 20. (human, 2026-11-27)
+- A17. Q: An outside review of chrysalis.py found 3 defects (R-8 worktree base ignores repo.default_branch, R-9 table rows split on pipes inside cells, R-10 silent folder-depth limit). Each fix is a rework part; raise the budget from 20 to 23?
+      Resolution: Approved; budget 23. (human, 2026-11-27)

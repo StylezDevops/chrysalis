@@ -25,3 +25,6 @@ executes it and no kind fits it. Tests and fixtures are checks, not parts.
 | 18 | hooks/git_pre_commit.py | module | C10; the deferral-marker rule as a git hook, for setups without Claude Code (A16) | no |
 | 19 | fix R-6: skipped tests reported as skipped | rework | found by a fresh-clone run before CI was added | no |
 | 20 | fix R-7: validate_real.py skips with exit 3 without local copies | rework | found by the same fresh-clone run | no |
+| 21 | fix R-8: worktree base from --base, then repo.default_branch, then main | rework | found by an outside code review (A17) | no |
+| 22 | fix R-9: one Markdown row splitter that keeps escaped and code-span pipes in their cell | rework | found by the same review | no |
+| 23 | fix R-10: inspect reports every folder past the depth limit; --max-depth raises it | rework | found by the same review | no |
