@@ -1,5 +1,7 @@
 # Chrysalis
 
+[![CI](https://github.com/StylezDevops/chrysalis/actions/workflows/ci.yml/badge.svg)](https://github.com/StylezDevops/chrysalis/actions/workflows/ci.yml)
+
 An engineering method for building software with AI coding agents, written down from what already
 worked across real projects, plus the tools that apply it to a new or existing repository without
 touching what is already there.
@@ -52,7 +54,8 @@ ambiguity in the spec before building, and ties every spec clause to a check.
 | `scripts/chrysalis.py` | The tool: validate, rules, inspect, plan, apply, gates, register check, worktree (new, finish, sweep), check. Standard library only. |
 | `templates/` | What `apply` writes: CLAUDE.md, initial.md, backlog, register, handover, ADR, Definition of Ready and Done, bug classes, names that do not exist, verification, fix, audit and change records, gates.toml and lusser files; plus a change request and runbook for live systems and a threat model where money, personal data or auth are involved. |
 | `skills/` | Claude Code skills: `chrysalis-init` plus 6 more (table below). |
-| `hooks/` | 4 Claude Code PreToolUse hooks, each with tests. |
+| `hooks/` | 4 Claude Code PreToolUse hooks and a git pre-commit form of the deferral-marker hook, each with tests. |
+| `.github/workflows/ci.yml` | Every gate that needs no local data, with its control, on Linux and Windows; and the quick start below on an empty project. |
 | `guardrails/` | The general code-writing guardrails `apply` installs to `~/.claude/` if absent. |
 | `tests/` | Spec tests per clause, lusser tests, the sabotage sweep and the real-repository validation. |
 | `.lusser/` | This repo's own spec, parts ledger and checks. |
@@ -95,6 +98,11 @@ On an existing repository, `apply`:
 - writes a proposal under `.chrysalis/run-<time>/proposals/` for any file that already exists;
 - runs no git command that writes.
 
+To see the result without running anything, open the latest
+[CI run](https://github.com/StylezDevops/chrysalis/actions/workflows/ci.yml): the "README quick start"
+job lists every file `apply` wrote into an empty project, shows the generated `initial.md`, and offers
+the whole project as a download named `example-project`.
+
 The `chrysalis-init` skill walks an agent through the rest with the user: the questions, `initial.md`,
 the first backlog items, the first lusser spec and the project's own gates.
 
@@ -104,7 +112,8 @@ My own setup makes some tools mandatory wherever they are available. Every shell
 [rtk](https://github.com/rtk-ai/rtk), which strips noise from command output so an agent spends its
 context on what matters. Code is read and edited through [Serena](https://github.com/oraios/serena),
 which works on symbols through a language server instead of reading whole files. The agent is Claude
-Code, and the hooks in `hooks/` are Claude Code PreToolUse hooks.
+Code, and the hooks in `hooks/` are Claude Code PreToolUse hooks. The deferral-marker rule also comes as a
+plain git pre-commit hook, so it works with any editor or agent.
 
 That is simply what I use at the moment. Chrysalis does not depend on any of it: `chrysalis.py` and
 `lusser.py` need only Python and git, and the rules never name a tool. Swap in whatever you prefer: a
@@ -199,27 +208,31 @@ Other skills I use. They came from the same projects but are domain-specific and
 
 ## How it was verified
 
-Measured on 2026-11-27, Windows 11, Python 3.14. Each line can be re-run with its command.
+Every check below except the real-repository validation also runs in CI on each push, on Ubuntu and
+Windows with Python 3.11 and 3.13; the badge at the top shows the latest result. The numbers here were
+measured on 2026-11-27, Windows 11, Python 3.14. Each line can be re-run with its command.
 
 | Check | Command | Result |
 |---|---|---|
-| Spec tests for every clause | `python tests/run_all.py --only chrysalis` | 51 tests, all pass |
+| Spec tests for every clause | `python tests/run_all.py --only chrysalis` | 53 tests, all pass |
 | lusser tests | `python tests/run_all.py --only lusser` | 15 tests, all pass |
-| Hook tests | `python tests/run_all.py --only hooks` | 24 block and 24 allow cases, 0 wrong |
+| Hook tests | `python tests/run_all.py --only hooks` | 28 block and 28 allow cases, 0 wrong |
 | Evidence: cited files exist and hold their quotes | `python tests/run_all.py --only evidence` | 3 tests, all pass |
 | Each of 15 deliberate defects is caught by a test naming its clause | `python tests/run_all.py --sweep` | 15 of 15 caught |
 | `apply` on copies of 4 real repositories and 1 new project | `python tests/validate_real.py` | 0 files changed or deleted across 5,709; all 5 pass; see `docs/validation.md` |
 | 7 automated gates | `python scripts/chrysalis.py gates run` | 7 pass |
 | Every gate's control goes red | `python scripts/chrysalis.py gates run --controls` | 7 of 7 red |
-| Spec coverage and part budget | `python skills/lusser/scripts/lusser.py check` | OK; 14 clauses covered, 16 of 16 parts |
+| Spec coverage and part budget | `python skills/lusser/scripts/lusser.py check` | OK; 14 clauses covered, 20 of 20 parts |
 
-5 defects have been found in Chrysalis itself and fixed with regression tests: 3 by the
-real-repository run, and 2 where a byte-order mark written by PowerShell broke file reading. They are
-in `docs/register.md` with their numbers.
+7 defects have been found in Chrysalis itself and fixed with regression tests: 3 by the
+real-repository run, 2 where a byte-order mark written by PowerShell broke file reading, and 2 by
+running the suites in a fresh clone before CI was added (a skipped test reported as a pass, and the
+validation crashing instead of skipping). They are in `docs/register.md` with their numbers.
 
 The real-repository validation and the evidence test read local copies of the source projects. Their
-paths are in a gitignored file, `tests/evidence_roots.local.json`. On another machine the 2 checks skip,
-and they report a skip, not a pass. The last full run is in `docs/validation.md`: 4 real repositories
+paths are in a gitignored file, `tests/evidence_roots.local.json`. On another machine, CI included, the
+evidence suite prints "PASS, 2 of 3 skipped" and the validation exits 3 with "SKIPPED"; neither reports
+a plain pass. The last full run is in `docs/validation.md`: 4 real repositories
 and 1 new project, 5,709 files, 0 changed or deleted.
 
 ## Licence

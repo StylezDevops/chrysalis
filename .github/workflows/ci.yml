@@ -1,0 +1,84 @@
+name: CI
+
+# Every gate in gates.toml that can run without local data, on Linux and Windows, with every
+# control shown to go red. V1 (real-repository validation) needs local copies of private projects,
+# so it runs on the owner's machine only; its last result is in docs/validation.md.
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  gates:
+    name: Gates (${{ matrix.os }}, Python ${{ matrix.python }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python: ["3.11", "3.13"]
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Git identity for tests that commit to temporary repositories
+        run: |
+          git config --global user.name "chrysalis-ci"
+          git config --global user.email "ci@example.invalid"
+          git config --global init.defaultBranch main
+      - name: gates.toml is well formed
+        run: python scripts/chrysalis.py gates validate
+      - name: Gates pass (T1 tests, S0 sabotage sweep, F1 method check, G1, R1 register, L1 lusser)
+        run: python scripts/chrysalis.py gates run --only T1 S0 F1 G1 R1 L1
+      - name: Every control goes red
+        run: python scripts/chrysalis.py gates run --controls --only T1 S0 F1 G1 R1 L1
+      - name: Test summary
+        if: always()
+        run: python tests/run_all.py | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Gate logs
+        if: failure()
+        run: for f in .chrysalis/gates/*.log .ci-local/*.log; do echo "=== $f"; cat "$f"; done
+
+  quickstart:
+    name: README quick start on an empty project
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: chrysalis
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Run the README commands
+        run: |
+          mkdir project && cd project && git init -q
+          cp ../chrysalis/config/config_project.example.json config_project.json
+          python ../chrysalis/scripts/chrysalis.py validate --config config_project.json
+          python ../chrysalis/scripts/chrysalis.py plan .
+          python ../chrysalis/scripts/chrysalis.py apply . --home "$RUNNER_TEMP/home"
+          python ../chrysalis/scripts/chrysalis.py gates validate --file gates.toml
+          test -z "$(git diff --cached --name-only)" || { echo "apply staged files"; exit 1; }
+      - name: Show what apply wrote
+        run: |
+          cd project
+          {
+            echo "## Files apply created in an empty project"
+            echo '```'
+            find . -path ./.git -prune -o -type f -print | sort
+            echo '```'
+            echo "## initial.md"
+            cat initial.md
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: example-project
+          path: project
+          include-hidden-files: true

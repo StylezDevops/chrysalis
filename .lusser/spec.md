@@ -4,7 +4,7 @@ Context: the method already exists across my projects, including MIDAS, Substrat
 CHRYSOS (see docs/discovery.md). This repo extracts it into 1 canonical, configurable source
 that can be cloned into a new project or laid over an existing one without damaging it.
 
-Budget: 16 parts
+Budget: 20 parts
 Assumed p: 0.95
 
 ## Clauses
@@ -56,3 +56,5 @@ Assumed p: 0.95
       Resolution: Budget 14 parts. (human, 2026-11-25) Raised to 16 for the R-4 and R-5 fixes. (human, 2026-11-26)
 - A15. Q: The in-work project was read in full. Adopt its findings as proposed: U17 to U20, strengthened U2 to U15, K10 on a new `risk.mutates_data` flag, a guardrails section, new templates, gate examples and a deferral-marker hook, plus the practices it does well?
       Resolution: Approved as proposed, with its good practices added as well. It is referenced only as "the in-work project". (human, 2026-11-27)
+- A16. Q: Make the method checkable by outsiders: CI on Linux and Windows running every gate that needs no local data with its control, a git pre-commit form of the deferral hook for people not on Claude Code, and the 2 defects (R-6, R-7) a fresh-clone run found. This takes 4 parts; raise the budget from 16 to 20?
+      Resolution: Approved; budget 20. (human, 2026-11-27)

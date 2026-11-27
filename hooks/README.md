@@ -11,6 +11,18 @@ Each has a test with block cases and allow cases.
 | `no-heredoc-file-write.py` | writing a file with a cat/tee heredoc, and Python heredocs containing backslashes | files corrupted by halved backslashes through the Bash tool |
 | `block_deferral_markers.py` | an edit that adds TODO, FIXME, HACK, "for now" or a workaround marker to a source file | 30 "for now" comments in the in-work project hid placeholders that reported success |
 
+`git_pre_commit.py` applies the deferral-marker rule as a git pre-commit hook, for anyone not using
+Claude Code. It compares each staged source file with HEAD and refuses the commit if markers were added.
+To install it in a project, put this in `.git/hooks/pre-commit` (or in a folder named by
+`git config core.hooksPath`):
+
+```sh
+#!/bin/sh
+exec python "CHRYSALIS/hooks/git_pre_commit.py"
+```
+
+The other 3 hooks guard shell commands an agent runs, so they have no git equivalent.
+
 Run the tests:
 
 ```

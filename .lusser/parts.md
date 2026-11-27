@@ -21,3 +21,7 @@ executes it and no kind fits it. Tests and fixtures are checks, not parts.
 | 14 | fix R-3: live .lusser files reused, not proposed | rework | found by real-input validation on the CHRYSOS and Substrate copies | no |
 | 15 | fix R-4: lusser.py reads user-edited files as utf-8-sig | rework | found when a PowerShell write broke this repo's own checks.toml | no |
 | 16 | fix R-5: chrysalis.py reads config, gates, register and templates as utf-8-sig | rework | same cause as R-4 | no |
+| 17 | .github/workflows/ci.yml | config | C8, C10, C13; every gate except V1 and every control, on Linux and Windows; the README quick start on an empty project (A16) | no |
+| 18 | hooks/git_pre_commit.py | module | C10; the deferral-marker rule as a git hook, for setups without Claude Code (A16) | no |
+| 19 | fix R-6: skipped tests reported as skipped | rework | found by a fresh-clone run before CI was added | no |
+| 20 | fix R-7: validate_real.py skips with exit 3 without local copies | rework | found by the same fresh-clone run | no |

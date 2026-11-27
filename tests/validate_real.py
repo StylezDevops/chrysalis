@@ -25,7 +25,10 @@ import tempfile
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "scripts" / "chrysalis.py"
-ROOTS = json.loads((ROOT / "tests" / "evidence_roots.local.json").read_text(encoding="utf-8"))
+ROOTS_FILE = pathlib.Path(os.environ.get("CHRYSALIS_ROOTS_FILE")
+                          or ROOT / "tests" / "evidence_roots.local.json")
+ROOTS = json.loads(ROOTS_FILE.read_text(encoding="utf-8")) if ROOTS_FILE.is_file() else None
+SKIPPED = 3  # exit code when the local copies are absent: never 0, because a skip is not a pass (U2, R-7)
 REPORT = ROOT / "docs" / "validation.md"
 
 BASE_RISK = {"live_production": False, "handles_money": False, "handles_personal_data": False,
@@ -217,6 +220,10 @@ def main():
     ap.add_argument("--control", action="store_true")
     ap.add_argument("--keep", action="store_true", help="keep the temp copies for inspection")
     args = ap.parse_args()
+    if ROOTS is None:
+        print(f"SKIPPED: {ROOTS_FILE.name} not found, so there are no local repository copies to "
+              f"validate against. This is not a pass (exit {SKIPPED}).")
+        return SKIPPED
     env = dict(os.environ)
     env.pop("CHRYSALIS_SABOTAGE", None)
     work = pathlib.Path(tempfile.mkdtemp(prefix="chrysalis-validate-")) / "w"

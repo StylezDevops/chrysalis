@@ -111,6 +111,21 @@ def run_suite(name, sabotage=None):
 SUITES = ["chrysalis", "lusser", "hooks", "evidence"]
 
 
+def verdict(code, log_text):
+    """PASS, FAIL or SKIP for a suite, so a skipped test is never reported as a pass (U2, R-6)."""
+    if code:
+        return "FAIL"
+    ran = re.search(r"^Ran (\d+) tests?", log_text, re.M)
+    skipped = re.search(r"skipped=(\d+)", log_text)
+    ran = int(ran.group(1)) if ran else 0
+    skipped = int(skipped.group(1)) if skipped else 0
+    if ran and skipped == ran:
+        return "SKIP (all tests skipped)"
+    if skipped:
+        return f"PASS, {skipped} of {ran} skipped"
+    return "PASS"
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--only", choices=SUITES)
@@ -143,7 +158,8 @@ def main() -> int:
     total = 0
     for suite in ([args.only] if args.only else SUITES):
         code, failed = run_suite(suite)
-        print(f"{suite:<10} {'PASS' if code == 0 else 'FAIL'} (exit {code})"
+        text = (LOGS / (suite + ".log")).read_text(encoding="utf-8", errors="replace")
+        print(f"{suite:<10} {verdict(code, text)} (exit {code})"
               + (f"  failing: {', '.join(sorted(failed))}" if failed else "")
               + f"  log: {(LOGS / (suite + '.log')).relative_to(ROOT).as_posix()}")
         total += 1 if code else 0

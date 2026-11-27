@@ -409,6 +409,30 @@ class Gates(unittest.TestCase):
             self.assertEqual(r.returncode, 0, r.stdout)
 
 
+class SkipIsNotPass(unittest.TestCase):
+    """R-6 and R-7: a check that could not run says so, and never reports a pass (U2)."""
+
+    def test_C8_suite_with_skipped_tests_is_not_reported_as_plain_pass(self):
+        sys.path.insert(0, str(ROOT / "tests"))
+        import run_all
+        self.assertEqual(run_all.verdict(0, "Ran 3 tests in 0.1s\n\nOK (skipped=3)\n"), "SKIP (all tests skipped)")
+        self.assertEqual(run_all.verdict(0, "Ran 3 tests in 0.1s\n\nOK (skipped=2)\n"), "PASS, 2 of 3 skipped")
+        self.assertEqual(run_all.verdict(0, "Ran 3 tests in 0.1s\n\nOK\n"), "PASS")
+        self.assertEqual(run_all.verdict(1, "Ran 3 tests in 0.1s\n\nFAILED (failures=1)\n"), "FAIL")
+
+    def test_C13_validation_without_local_copies_skips_with_a_nonzero_exit(self):
+        import os
+        import subprocess
+        with tempdir() as d:
+            env = dict(os.environ, CHRYSALIS_ROOTS_FILE=str(pathlib.Path(d) / "absent.json"))
+            env.pop("CHRYSALIS_SABOTAGE", None)
+            r = subprocess.run([sys.executable, str(ROOT / "tests" / "validate_real.py")], env=env,
+                               capture_output=True, text=True, encoding="utf-8", timeout=120)
+        self.assertEqual(r.returncode, 3, r.stdout + r.stderr)
+        self.assertIn("SKIPPED", r.stdout)
+        self.assertNotIn("Traceback", r.stderr)
+
+
 # ------------------------------------------------------------------ C9 register
 HEADER = "| ID | State | Defect | Measure | Before | After | Test | Follow-up |\n|---|---|---|---|---|---|---|---|\n"
 
