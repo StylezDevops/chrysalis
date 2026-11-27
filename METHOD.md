@@ -106,7 +106,7 @@ depth is sized to risk: 2 rounds for core, stateful or real-time code; 1 for UI 
 
 Besides its own brief, the auditor works a fixed list: the same job run twice at once, input out of
 order, clock and timezone edges, a reused key, throttling, a batch that half fails, orphaned state,
-malformed config. Each audit is compared with the claims of the one before it. Rejected findings are
+malformed config, and whether each finding holds for its siblings (U21). Each audit is compared with the claims of the one before it. Rejected findings are
 logged with the reason.
 
 Evidence: register-loop skill; Substrate memory never-accept-faults; CHRYSOS .claude/register-loop.md; the in-work project's audit graded "A, critical 0" and contradicted by stubs and injection found 15 days later.
@@ -298,6 +298,28 @@ evidence that it ran on a real path.
 - A feature is done when its claim names its implementation and a run shows it working.
 
 Evidence: the in-work project's security-headers middleware, inert for about 10 months until its first run exposed a header that threw on every response; its simulated-success delta stub; its validators returning empty lists.
+
+### U21. One promise, every member
+
+When the software promises a behaviour across a family of interchangeable things, the promise holds
+for every member. Where it does not, the docs say which members it covers and why the others cannot
+fail that way.
+
+A family is any set of things a caller can swap without changing its own code: storage backends,
+payment providers, databases, deployment targets, the actors who can do the same job (a person, a
+role, an agent) and the routes or tools that write the same fact.
+
+- A defect found in one member is checked against every sibling in the same change. It is fixed for
+  each member it can reach, and the commit says why it cannot reach the rest. A finding names its
+  member only once the others have been looked at.
+- The test for the behaviour runs once per member, so a member added later fails until it keeps the
+  promise.
+- Every audit brief asks whether each finding holds for the siblings (U5). A finding fixed for one
+  member only is not closed.
+- Docs state the promise once, for the whole family, and name any member that differs. They never
+  state it for one member and leave the reader to assume it for the rest.
+
+Evidence: decided by the owner on 2026-11-27 and recorded in Substrate's local CLAUDE.md ("One promise, every implementation"), after Substrate R-321, where a guarantee that nothing different is overwritten was built for one storage backend while its siblings went without; chrysalis R-11 the same day, where the base-branch fix (R-8) reached `worktree` but not `lusser parts`.
 
 ---
 

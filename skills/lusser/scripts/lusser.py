@@ -3,7 +3,8 @@
 
 Subcommands:
   init                 create .lusser/ with template files
-  parts --base <ref>   draft candidate part rows from `git diff <ref>`
+  parts [--base <ref>] draft candidate part rows from `git diff <ref>`; the ref defaults to
+                       repo.default_branch in config_project.json, else main
   check                enforce the rules; exit 1 on any failure
 
 Standard library only. Requires Python 3.11+ (tomllib).
@@ -11,6 +12,7 @@ Standard library only. Requires Python 3.11+ (tomllib).
 from __future__ import annotations
 
 import argparse
+import json
 import math
 import os
 import re
@@ -217,9 +219,32 @@ def needed_p(n: int, target: float) -> float:
     return math.exp(math.log(target) / n) if n else 1.0
 
 
+def resolve_base(repo: Path, explicit: str | None) -> tuple[str | None, str]:
+    """(base ref, where it came from): --base, then repo.default_branch in the repo's
+    config_project.json, then "main". Same order as `chrysalis.py worktree`; an unreadable
+    config is an error, not a reason to guess."""
+    if explicit:
+        return explicit, "--base"
+    cfg = repo / "config_project.json"
+    if cfg.is_file():
+        try:
+            branch = (json.loads(cfg.read_text(encoding="utf-8-sig")).get("repo") or {}).get("default_branch")
+        except (ValueError, AttributeError, OSError) as e:
+            return None, f"{cfg} could not be read ({e}); pass --base or fix the config"
+        if isinstance(branch, str) and branch.strip():
+            return branch.strip(), "repo.default_branch in config_project.json"
+    return "main", "default (no --base and no repo.default_branch in config_project.json)"
+
+
 # ---------------------------------------------------------------- parts draft
 def cmd_parts(args) -> int:
     r = root()
+    base, source = resolve_base(r, args.base)
+    if base is None:
+        print(f"FAIL {source}")
+        return 1
+    args.base = base
+    print(f"base: {base} ({source})")
     try:
         names = subprocess.run(["git", "diff", "--name-status", args.base], cwd=r,
                                capture_output=True, text=True, check=True).stdout
@@ -330,7 +355,8 @@ def main() -> int:
     sub = ap.add_subparsers(dest="cmd", required=True)
     sub.add_parser("init").set_defaults(fn=cmd_init)
     p = sub.add_parser("parts")
-    p.add_argument("--base", default="main", help="git ref to diff against (default: main)")
+    p.add_argument("--base", help="git ref to diff against (default: repo.default_branch in "
+                   "config_project.json, else main)")
     p.add_argument("--start", type=int, default=1, help="first row number")
     p.set_defaults(fn=cmd_parts)
     sub.add_parser("check").set_defaults(fn=cmd_check)

@@ -9,7 +9,7 @@ clause with a check that fails differently from an agent.
 ```
 lusser/
 ├── SKILL.md                    the discipline (read by the agent)
-├── scripts/lusser.py           init | parts --base <ref> | check   (Python 3.11+, stdlib only)
+├── scripts/lusser.py           init | parts [--base <ref>] | check  (Python 3.11+, stdlib only)
 ├── references/
 │   ├── formats.md              exact shapes of spec.md, parts.md, checks.toml, escapes.md
 │   └── check-kinds.md          how to produce each check kind in C++, C#, TS, Python
@@ -21,8 +21,8 @@ lusser/
 ```
 python scripts/lusser.py init             # creates .lusser/ in the repo root
 # ... agent drafts spec.md, human resolves ambiguities, budget agreed ...
-python scripts/lusser.py parts --base main # draft ledger rows from the diff
-python scripts/lusser.py check             # exit 1 on any rule violation
+python scripts/lusser.py parts            # draft ledger rows from the diff to the default branch
+python scripts/lusser.py check            # exit 1 on any rule violation
 ```
 
 ## Claude Code hook (optional)

@@ -15,6 +15,11 @@ What changed.
 The details a reviewer could miss: ordering, the edge case handled, why the obvious simpler fix was
 wrong.
 
+## Siblings
+
+The family this defect's member belongs to (U21), each sibling checked, and for each one either the
+fix or the reason it cannot fail this way.
+
 ## What it does not change
 
 Behaviour, interfaces and data deliberately left as they were.

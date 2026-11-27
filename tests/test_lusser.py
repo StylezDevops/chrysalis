@@ -205,6 +205,45 @@ class Parts(unittest.TestCase):
             self.assertRegex(r.stdout, r"\| 1 \| dependency change in package.json \| dependency")
             self.assertRegex(r.stdout, r"\| 2 \| src/app.py \| module")
 
+    @staticmethod
+    def trunk_repo(d, config_text):
+        """A repo whose only base branch is `trunk`, with one new module on a work branch."""
+        g = ["git", "-C", str(d), "-c", "user.name=t", "-c", "user.email=t@example.invalid"]
+        subprocess.run(["git", "init", "-q", "-b", "trunk", str(d)], check=True)
+        subprocess.run(g + ["commit", "-q", "--allow-empty", "-m", "base"], check=True)
+        subprocess.run(g + ["checkout", "-q", "-b", "work"], check=True)
+        (d / "src").mkdir()
+        (d / "src" / "app.py").write_text("print(1)\n", encoding="utf-8")
+        if config_text is not None:
+            (d / "config_project.json").write_text(config_text, encoding="utf-8")
+        subprocess.run(g + ["add", "-A"], check=True)
+        subprocess.run(g + ["commit", "-q", "-m", "work"], check=True)
+
+    def test_L_parts_base_defaults_to_the_configured_default_branch(self):
+        with tempdir() as d:
+            d = pathlib.Path(d)
+            self.trunk_repo(d, '{"repo": {"default_branch": "trunk"}}')
+            r = lusser(d, "parts")
+            self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+            self.assertRegex(r.stdout, r"\| src/app.py \| module")
+            self.assertIn("config_project.json", r.stdout, "the output does not say where the base came from")
+
+    def test_L_parts_explicit_base_overrides_the_config(self):
+        with tempdir() as d:
+            d = pathlib.Path(d)
+            self.trunk_repo(d, '{"repo": {"default_branch": "nowhere"}}')
+            r = lusser(d, "parts", "--base", "trunk")
+            self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+            self.assertRegex(r.stdout, r"\| src/app.py \| module")
+
+    def test_L_parts_unreadable_config_fails_closed(self):
+        with tempdir() as d:
+            d = pathlib.Path(d)
+            self.trunk_repo(d, "{not json")
+            r = lusser(d, "parts")
+            self.assertNotEqual(r.returncode, 0, r.stdout)
+            self.assertIn("config_project.json", r.stdout + r.stderr)
+
 
 class Arithmetic(unittest.TestCase):
     def test_L_property_needed_p_gives_even_odds(self):

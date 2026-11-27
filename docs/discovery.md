@@ -47,6 +47,11 @@ renumbered them and added U14 to U20 later, so cite rules by their `METHOD.md` I
 | U12 | **Sessions hand over.** Write the handover at about 85% context. Start and close rituals. | register-loop skill; CHRYSOS HANDOVER-*.md |
 | U13 | **A report is a claim.** Read the diff, not the summary. Read the exit code, not the prose. Keep verification and an irreversible action out of the same command. | CHRYSOS the-worktree-agent-brief, block_piped_register, block_coupled_push |
 
+U21 (one promise, every member) is not a discovered practice. The owner decided it on 2026-11-27 after
+Substrate R-321, where a guarantee was built for one storage backend while its siblings went without,
+and recorded it in Substrate's local CLAUDE.md, which is gitignored there. Chrysalis hit the same shape the same day: R-8 fixed the base branch for `worktree` and
+missed `lusser parts` (R-11).
+
 ## Conditional rules
 
 | Rule | Applies when | Evidence |

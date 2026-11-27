@@ -37,8 +37,9 @@ Chrysalis, published in November 2026, packages all of it. On 2026-11-27 every d
 note in the in-work project was read to its last line. Its practices the later projects had dropped
 came back, and its defects became rules where none existed: fail closed (U17), one outcome per unit of
 work (U18), config checked when it loads (U19), a mechanism counts once it is shown to run (U20), and
-K10 for software that changes data it does not own. `docs/discovery.md` shows which project each rule
-came from.
+K10 for software that changes data it does not own. The owner added U21 the same day: a behaviour promised
+across a family of interchangeable things holds for every member. `docs/discovery.md` shows which
+project each rule came from.
 
 `lusser` is named after Lusser's product law: a system works only if every part works, so its odds are
 the product of each part's odds. The lusser skill keeps the part count down, gets a human to resolve
@@ -48,7 +49,7 @@ ambiguity in the spec before building, and ties every spec clause to a check.
 
 | Path | What it is |
 |---|---|
-| `METHOD.md` | The rules. 20 universal (U1 to U20) and 10 conditional (K1 to K10), each with its evidence. |
+| `METHOD.md` | The rules. 21 universal (U1 to U21) and 10 conditional (K1 to K10), each with its evidence. |
 | `docs/discovery.md` | How the rules were found: which projects, which files, what was inferred. |
 | `config/` | `config_project.json` fields and a filled example. |
 | `scripts/chrysalis.py` | The tool: validate, rules, inspect, plan, apply, gates, register check, worktree (new, finish, sweep), check. Standard library only. |
@@ -218,22 +219,23 @@ measured on 2026-11-27, Windows 11, Python 3.14. Each line can be re-run with it
 
 | Check | Command | Result |
 |---|---|---|
-| Spec tests for every clause | `python tests/run_all.py --only chrysalis` | 62 tests, all pass |
-| lusser tests | `python tests/run_all.py --only lusser` | 15 tests, all pass |
+| Spec tests for every clause | `python tests/run_all.py --only chrysalis` | 64 tests, all pass |
+| lusser tests | `python tests/run_all.py --only lusser` | 18 tests, all pass |
 | Hook tests | `python tests/run_all.py --only hooks` | 28 block and 28 allow cases, 0 wrong |
 | Evidence: cited files exist and hold their quotes | `python tests/run_all.py --only evidence` | 3 tests, all pass |
 | Each of 15 deliberate defects is caught by a test naming its clause | `python tests/run_all.py --sweep` | 15 of 15 caught |
 | `apply` on copies of 4 real repositories and 1 new project | `python tests/validate_real.py` | 0 files changed or deleted across 5,709; all 5 pass; see `docs/validation.md` |
 | 7 automated gates | `python scripts/chrysalis.py gates run` | 7 pass |
 | Every gate's control goes red | `python scripts/chrysalis.py gates run --controls` | 7 of 7 red |
-| Spec coverage and part budget | `python skills/lusser/scripts/lusser.py check` | OK; 14 clauses covered, 23 of 23 parts |
+| Spec coverage and part budget | `python skills/lusser/scripts/lusser.py check` | OK; 14 clauses covered, 24 of 24 parts |
 
-10 defects have been found in Chrysalis itself and fixed with regression tests: 3 by the
-real-repository run, 2 where a byte-order mark written by PowerShell broke file reading, and 2 by
-running the suites in a fresh clone before CI was added (a skipped test reported as a pass, and the
-validation crashing instead of skipping), and 3 from an outside code review (worktrees ignoring the
-configured default branch, a pipe inside a table cell shifting the register's columns, and a silent
-folder-depth limit). They are in `docs/register.md` with their numbers.
+11 defects have been found in Chrysalis itself and fixed with regression tests: 3 by the
+real-repository run; 2 where a byte-order mark written by PowerShell broke file reading; 2 by running
+the suites in a fresh clone before CI was added (a skipped test reported as a pass, and the validation
+crashing instead of skipping); 3 from an outside code review (worktrees ignoring the configured
+default branch, a pipe inside a table cell shifting the register's columns, and a silent folder-depth
+limit); and 1 found by checking that review's first fix against its siblings (U21): `lusser parts`
+still ignored the configured default branch. They are in `docs/register.md` with their numbers.
 
 The real-repository validation and the evidence test read local copies of the source projects. Their
 paths are in a gitignored file, `tests/evidence_roots.local.json`. On another machine, CI included, the

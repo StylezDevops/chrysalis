@@ -18,11 +18,15 @@ One row per defect (METHOD U3). Rows are never renumbered or deleted. Checked by
 | R-8 | CLOSED | `worktree` ignored `repo.default_branch` and always used `main`, so `new` and `sweep` failed on a repo whose default branch is `master`, `trunk` or `develop` unless `--base` was passed | worktree tests failing on a repo whose only branch is `trunk`, with the config naming it | 3 | 0 | tests/test_chrysalis.py::test_C12_base_defaults_to_the_configured_default_branch | rule: base comes from --base, then the config, then main, and the output names the source; an unreadable config fails closed (U17, U19) |
 | R-9 | CLOSED | `register check` split table rows on every pipe, so an escaped pipe or a pipe inside a code span shifted the columns and misread before, after and test | register rows misread in the regression fixture | 1 | 0 | tests/test_chrysalis.py::test_C9_escaped_pipe_and_code_span_pipe_stay_inside_their_cell | rule: one Markdown row splitter, used by register check and the K-table check |
 | R-10 | CLOSED | `inspect` stopped at 3 folder levels without saying so, so assets deeper in a monorepo were missed silently | folders cut off by the depth limit and not reported, test repo | 1 | 0 | tests/test_chrysalis.py::test_C6_folders_past_the_depth_limit_are_reported_and_reachable | rule: the inventory lists every folder it did not walk, plan prints a note, and --max-depth raises the limit (U13) |
+| R-11 | CLOSED | `lusser parts` kept `main` as its fixed default base, so on a repo whose default branch is `trunk` it failed unless `--base` was passed; R-8 had fixed the same promise for `worktree` only | base-branch family members failing on a `trunk` repo with the config naming it (tests/test_chrysalis.py::BaseBranchFamily) | 1 | 0 | tests/test_chrysalis.py::test_C12_every_member_takes_its_base_from_the_config | rule: U21; the base-branch promise is tested once per member, so a tool added later fails until it reads the config the same way |
 
 R-8 to R-10 came from an outside review of `chrysalis.py` on 2026-11-27. The same review raised 2
 points that were not defects and were hardened anyway: a K-table flag that is not true or false now
 raises instead of being read as truthy (config validation already rejected such values), and `plan`
 names the guardrails file it would write to the home folder, with `--no-home` to skip it.
+
+R-11 was found the same day by applying U21 to R-8: the base-branch promise had been fixed for
+`worktree` and not for `lusser parts`. `BaseBranchFamily` now runs it once per tool that picks a base.
 
 R-4 and R-5 were held at the 14-part budget until the budget was raised to 16 (2026-11-26), then fixed
 with regression tests that failed before the fix.

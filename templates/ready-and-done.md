@@ -26,5 +26,7 @@ A story or register row is done when:
 - [ ] the build, the unit tests and the touched gates pass, read by exit code (U13, U15);
 - [ ] `lusser.py check` passes;
 - [ ] docs changed with the code (U9);
+- [ ] a behaviour promised across a family is tested once per member, and a defect has been checked
+      against every sibling (U21);
 - [ ] for a defect: the register row is CLOSED with its numbers, test and follow-up (U3);
 - [ ] the handover is rewritten (U12).

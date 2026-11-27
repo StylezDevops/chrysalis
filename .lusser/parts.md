@@ -28,3 +28,4 @@ executes it and no kind fits it. Tests and fixtures are checks, not parts.
 | 21 | fix R-8: worktree base from --base, then repo.default_branch, then main | rework | found by an outside code review (A17) | no |
 | 22 | fix R-9: one Markdown row splitter that keeps escaped and code-span pipes in their cell | rework | found by the same review | no |
 | 23 | fix R-10: inspect reports every folder past the depth limit; --max-depth raises it | rework | found by the same review | no |
+| 24 | fix R-11: lusser parts takes its base from --base, then repo.default_branch, then main | rework | found by checking R-8 against its siblings (U21, A18) | no |

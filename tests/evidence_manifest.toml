@@ -177,3 +177,9 @@ rule = "U20"
 project = "INWORK"
 path = "internaldocs/FOR-NOW-IMPLEMENTATIONS.md"
 quote = "simulate successful processing"
+
+[[cite]]
+rule = "U21"
+project = "SUBSTRATE"
+path = "CLAUDE.md"
+quote = "One promise, every implementation"

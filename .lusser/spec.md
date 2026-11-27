@@ -4,7 +4,7 @@ Context: the method already exists across my projects, including MIDAS, Substrat
 CHRYSOS (see docs/discovery.md). This repo extracts it into 1 canonical, configurable source
 that can be cloned into a new project or laid over an existing one without damaging it.
 
-Budget: 23 parts
+Budget: 24 parts
 Assumed p: 0.95
 
 ## Clauses
@@ -60,3 +60,5 @@ Assumed p: 0.95
       Resolution: Approved; budget 20. (human, 2026-11-27)
 - A17. Q: An outside review of chrysalis.py found 3 defects (R-8 worktree base ignores repo.default_branch, R-9 table rows split on pipes inside cells, R-10 silent folder-depth limit). Each fix is a rework part; raise the budget from 20 to 23?
       Resolution: Approved; budget 23. (human, 2026-11-27)
+- A18. Q: U21 (one promise, every member) applied to R-8 found R-11: `lusser parts` still defaults to main and ignores repo.default_branch. The fix is a rework part; raise the budget from 23 to 24?
+      Resolution: Approved; budget 24. (human, 2026-11-27)

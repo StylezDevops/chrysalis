@@ -9,11 +9,12 @@ import json
 import pathlib
 import random
 import re
+import subprocess
 import sys
 import unittest
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
-from helpers import (DELETE, FIXTURES, ROOT, git, make_git_repo, run, tempdir,  # noqa: E402
+from helpers import (DELETE, FIXTURES, LUSSER, ROOT, git, make_git_repo, run, tempdir,  # noqa: E402
                      tree_hashes, valid_config, write_config)
 
 REQUIRED = ["project__name", "project__description", "project__problem", "project__users", "stage",
@@ -651,6 +652,50 @@ class Worktrees(unittest.TestCase):
         self.assertIn("agent/open", branches, "unmerged agent work was removed")
         self.assertTrue((self.wt_root / "open" / "f.txt").exists())
         self.assertIn("feature/keep", branches, "a non-agent branch was removed")
+
+
+class BaseBranchFamily(unittest.TestCase):
+    """U21: every tool that picks a base branch keeps the same promise (--base, then
+    repo.default_branch, then main; an unreadable config fails closed). A tool added to MEMBERS
+    later inherits these tests and fails until it keeps the promise. R-11 was lusser parts, missed
+    when R-8 fixed worktree alone."""
+
+    MEMBERS = {
+        "worktree new": lambda repo, root: run("worktree", "new", "job-f", "--repo", repo, "--root", root),
+        "worktree sweep": lambda repo, root: run("worktree", "sweep", "--repo", repo, "--root", root),
+        "lusser parts": lambda repo, root: subprocess.run(
+            [sys.executable, str(LUSSER), "parts"], cwd=repo, capture_output=True, text=True, encoding="utf-8"),
+    }
+
+    def setUp(self):
+        self._tmp = tempdir()
+        self.base = pathlib.Path(self._tmp.name)
+
+    def tearDown(self):
+        self._tmp.cleanup()
+
+    def trunk_repo(self, name, config_text):
+        repo = make_git_repo(self.base / name, {"a.txt": "a\n"})
+        git(repo, "branch", "-m", "main", "trunk")
+        (repo / "config_project.json").write_text(config_text, encoding="utf-8")
+        return repo
+
+    def test_C12_every_member_takes_its_base_from_the_config(self):
+        for i, (member, call) in enumerate(self.MEMBERS.items()):
+            with self.subTest(member=member):
+                repo = self.trunk_repo(f"ok{i}", '{"repo": {"default_branch": "trunk"}}')
+                r = call(repo, self.base / f"wts{i}")
+                self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+                self.assertIn("trunk", r.stdout)
+                self.assertIn("config_project.json", r.stdout, "the output does not say where the base came from")
+
+    def test_C12_every_member_fails_closed_on_an_unreadable_config(self):
+        for i, (member, call) in enumerate(self.MEMBERS.items()):
+            with self.subTest(member=member):
+                repo = self.trunk_repo(f"bad{i}", "{not json")
+                r = call(repo, self.base / f"wts{i}")
+                self.assertNotEqual(r.returncode, 0, r.stdout)
+                self.assertIn("config_project.json", r.stdout + r.stderr)
 
 
 # ------------------------------------------------------------------ C1, C11 framework self-check

@@ -20,9 +20,12 @@ Sites and areas checked and found sound, so the next audit does not redo them bl
 
 ## Found
 
-| Finding | Severity | Register row | Status |
-|---|---|---|---|
-| | | | |
+| Finding | Severity | Siblings checked (U21) | Register row | Status |
+|---|---|---|---|---|
+| | | | | |
+
+For each finding, name its family and each member checked. A finding fixed for one member only stays
+open.
 
 ## Rejected
 

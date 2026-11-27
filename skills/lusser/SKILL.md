@@ -49,7 +49,7 @@ Add a row to `parts.md` for every part the change introduces, as you introduce i
 
 `dependency`, `external-api`, `schema-change`, `module`, `interface`, `config`, `handoff` (a new agent/subagent/pipeline stage), and `rework` (a fix, re-review or retest spawned by a failure, these count, because failure breeds failure and the loop is only visible if counted).
 
-Run `python scripts/lusser.py parts --base <ref>` to draft candidate rows from the diff (manifest changes, migrations, new source files, new exports). Treat the draft as a floor: you may add rows to it, never remove mechanical ones without saying why.
+Run `python scripts/lusser.py parts` to draft candidate rows (manifest changes, migrations, new source files, new exports) from the diff against the base: `--base <ref>`, else `repo.default_branch` in `config_project.json`, else `main`. Treat the draft as a floor: you may add rows to it, never remove mechanical ones without saying why.
 
 If the count reaches the budget: stop, show the ledger, and ask whether to raise the budget, cut scope, or replace bespoke parts with proven ones. Never quietly continue.
 

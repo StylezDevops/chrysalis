@@ -35,6 +35,7 @@ Universal:
 - U18: Every unit has one outcome
 - U19: Config is checked when it loads
 - U20: A mechanism counts once it is shown to run
+- U21: One promise, every member
 
 Conditional, selected from `config_project.json` on 2026-11-27:
 
