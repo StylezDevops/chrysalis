@@ -25,6 +25,7 @@ own sake.
 | `risk.auth` | bool | yes | K4 |
 | `risk.realtime` | bool | yes | K5 |
 | `risk.client_engagement` | bool | yes | K8 |
+| `risk.mutates_data` | bool | yes | K10: the software writes, deletes or syncs data it does not wholly own |
 | `ci.remote` | `none`, `on-request` or `every-push` | yes | K7 |
 | `ci.local_gate` | string | no | the command shown in `CLAUDE.md` and the gates template |
 | `agents.max_parallel_agents` | integer 1 to 8 | yes | U16 cap |

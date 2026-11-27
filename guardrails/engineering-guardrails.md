@@ -299,3 +299,40 @@ usually future-you. Code is read far more than it's written, so optimise for the
   loading unbounded data into memory. Stream or paginate large sets.
 - Cache deliberately, with invalidation in mind, a cache is a correctness liability you take on
   for speed, never a free win. (This is "earn complexity with evidence" applied to performance.)
+
+## 13. Data, retries and failure at the boundaries
+
+Learned from a data-integration platform where each item below was a real defect.
+
+**Boundaries:**
+- Parse everything that crosses a boundary against a schema at that boundary: environment variables
+  at startup, config at load, API responses on receipt, user input on entry, untyped database rows on
+  read.
+- An error message says what failed, on which item, and what to do. Raw exception text never leaves
+  the process; it can carry field values, paths and connection details.
+- Prefer an allowlist to a denylist. Read-only access is enforced by the credential, not by refusing
+  SQL keywords.
+- Take authoritative values (entity names, read-only fields, types) from the system's metadata, not
+  from a hand-kept list or a guess at pluralisation.
+- An unknown enum value or an unparseable input is an error, not a quiet default to a real value.
+
+**Retries and identity:**
+- One layer owns retries. Never retry a cancellation the caller asked for, or an authentication
+  failure.
+- A write that is not idempotent, retried after an ambiguous failure (a timeout, a 500), carries an
+  idempotency key. A reused key with a different request is refused.
+- A retried streaming read resumes from a cursor; it does not start again at row 0 after rows were
+  already handed on.
+- Match results to requests by an explicit key carried through the call, never by list position.
+- Compare timestamps only from the clock that wrote them.
+
+**Observability:**
+- Errors are never sampled out of telemetry, even at peak load.
+- Alerts read structured metrics or event IDs, not log text. Each alert query is tested against
+  seeded data where it must fire and where it must not, and missing data reads as unknown, not as
+  100%.
+- Personal data stays out of logs, reports, error rows and third-party calls.
+
+**Working habits:**
+- Inspect real state with a read tool (a query, an API read) rather than a throwaway script.
+- A commit subject states the change in behaviour ("a malformed body is a 400, not a 500").

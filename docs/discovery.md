@@ -68,6 +68,54 @@ carried that material forward and added to it.
   - worktrees created from a stale base;
   - Serena edits landing in the main checkout.
 
+## The in-work project (read 2026-11-27)
+
+The in-work project is where the method began. It is a data-integration platform: about 119,000 lines
+of production C#, 80,000 lines of tests (3,283 of them), and 2.4 MB of docs and internal notes. It
+was built mostly in an editor with AI extensions, so its rules live in agent instruction files, tool
+memories and long internal documents rather than in hooks. Every doc and internal note was read to
+its last line. The code was mapped and sampled rather than read whole.
+
+It contributes in two ways. Some practices it does well and the later projects never carried
+forward. Others are defects that show a rule was missing. Each rule added from it names its evidence
+in METHOD.md.
+
+**Practices it does well, now in the method:**
+
+| Practice | Where it went |
+|---|---|
+| Every record ends written or quarantined; the watermark does not move past an unrecorded failure; outcomes are counted, not attempts | U18 |
+| A checksum of the effective config on every run and every rejected record | U19 |
+| Deletes inferred from absence guarded by a complete read, a ratio cap and margins that err toward keeping | K10 |
+| A run that stops itself when its rejection rate shows a systemic fault | K10 |
+| The "trace the data journey" questions before writing data code | K10 |
+| Guide examples run as tests against the real loader | U9 |
+| A found bug turned into a pattern catalogue that drives a codebase-wide hunt, recording what was cleared | U3, audit-record template |
+| Tests that asserted the bug as correct were rewritten | U3 |
+| A lessons file of model properties that do not exist | U3, names-that-do-not-exist template |
+| An ADR holding a register of 17 numbered decisions, each with a status, a "what review changed" section and open items by owner | U11, ADR template |
+| Fix records that state what the fix does not change and what could not be tested | fix-record template |
+| A deploy checklist holding only what cannot be automated, the rest checked at startup | K3, runbook template |
+| A per-run schema in a real database for integration tests; tests sharing environment variables run alone | U4 |
+| Refactors that start from passing tests and change no behaviour | U15 |
+| Code comments that cite the decision ID they apply | U11 |
+
+**Defects that show a missing rule:**
+
+| Defect | Rule it led to |
+|---|---|
+| An unset environment defaulted to development and opened anonymous endpoints; a validator "assumes things are fine" when it cannot read its setting; a truncate ran after its safety check was skipped | U17 |
+| A watermark taken after the read lost rows; count checks with a 5% tolerance; "Completed" reported beside failures | U18 |
+| Options documented and accepted but never read; no startup validation of 155 environment reads | U19 |
+| A security middleware inert for about 10 months; a delta stub that only incremented its success counter; validators returning empty lists | U20 |
+| 18 integration tests that returned early and passed; mutation testing with no threshold; security pipeline stages that only echoed | U2 |
+| An audit graded "A, critical 0", contradicted by stubs and SQL injection found 15 days later | U5 |
+| 30 "for now" items, some closed by rewording the comment; lint fixed by lowering errors to warnings | U6, deferral-marker hook |
+| A 40-item checklist ticked by hand with no hooks; a security checklist ticked against templates that said the opposite | U7 |
+| Five identifier validators that had drifted apart; a retry path with its own copy of the mapping | U8 |
+| Reference examples the loader rejects; rollback documented with endpoints that do not exist | U9 |
+| Rollback plans built only after a successful run; a re-enable step that switched on items that were off before | K10 |
+
 ## Reusable assets
 
 | Asset | Source | How generic |

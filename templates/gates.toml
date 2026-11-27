@@ -40,3 +40,53 @@ procedure = "The project owner runs the agreed scenario and records acceptance, 
 # run = '{{local_gate}}'
 # pass = "exit 0"
 # control = 'a command that runs the tests with a known defect switched on, and fails'
+#
+# Gates most projects should have. Pick the line for the project's language and uncomment the gate.
+# Each control is a file kept under tests/fixtures/ that contains the defect the gate exists for.
+#
+# [[gate]]
+# id = "Q1"
+# purpose = "Static analysis at zero: every warning is an error, tests included. A suppression needs a reason about the flagged code."
+# kind = "automated"
+# run = 'dotnet build -warnaserror'             # C#: TreatWarningsAsErrors, AnalysisLevel latest-recommended, Nullable enable
+# run = 'ruff check . && mypy --strict .'       # Python
+# run = 'tsc --noEmit && eslint . --max-warnings 0'  # TypeScript (strict in tsconfig)
+# run = 'cmake --build build'                   # C++: -Wall -Wextra -Werror, clang-tidy WarningsAsErrors
+# pass = "exit 0"
+# control = 'the same command over tests/fixtures/lint-defect (an unused variable, an unawaited call)'
+#
+# [[gate]]
+# id = "Q2"
+# purpose = "Mutation testing: the suite kills enough mutants. Break below 50 overall, 80 on core modules."
+# kind = "automated"
+# run = 'dotnet stryker --break-at 50'          # or: npx stryker run, mutmut run, mull
+# pass = "exit 0"
+# control = 'the same run with a test deleted from tests/fixtures/mutation-control, which must fall below the threshold'
+#
+# [[gate]]
+# id = "Q3"
+# purpose = "No dependency with a known High or Critical vulnerability."
+# kind = "automated"
+# run = 'osv-scanner --recursive .'             # or: npm audit --audit-level=high, pip-audit, dotnet list package --vulnerable --include-transitive
+# pass = "exit 0"
+# control = 'osv-scanner --lockfile tests/fixtures/vulnerable.lock'
+#
+# [[gate]]
+# id = "Q4"
+# purpose = "No secret in the tree, including files git ignores and agent working notes."
+# kind = "automated"
+# run = 'gitleaks detect --no-git --source .'
+# pass = "exit 0"
+# control = 'gitleaks detect --no-git --source tests/fixtures/secret-planted'
+#
+# [[gate]]
+# id = "Q5"
+# purpose = "No test skipped without being reported, and no required test category ran zero tests."
+# kind = "automated"
+# run = 'the test runner with its skip and per-category counts checked by a script'
+# pass = "exit 0"
+# control = 'the same check over a results file where a required category ran none'
+#
+# Pin the toolchain and the tools these gates use (global.json, .nvmrc or engines, .python-version or a
+# lock file, rust-toolchain.toml, a local tool manifest instead of global installs), so an unchanged
+# codebase cannot fail because an analyser moved under it.

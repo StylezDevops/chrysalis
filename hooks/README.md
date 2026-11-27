@@ -9,6 +9,7 @@ Each has a test with block cases and allow cases.
 | `block_piped_register.py` | piping a gate or CI script's output, which throws away its exit code | a red build pushed to main on a piped "exit 0" |
 | `block_undeclared_npx.py` | `npx`, `npm exec`, `pnpm dlx`, `yarn dlx`, `bunx` on a tool the project has not installed | `npx prettier` downloaded a formatter and reflowed about 240 untouched lines |
 | `no-heredoc-file-write.py` | writing a file with a cat/tee heredoc, and Python heredocs containing backslashes | files corrupted by halved backslashes through the Bash tool |
+| `block_deferral_markers.py` | an edit that adds TODO, FIXME, HACK, "for now" or a workaround marker to a source file | 30 "for now" comments in the in-work project hid placeholders that reported success |
 
 Run the tests:
 
@@ -39,6 +40,12 @@ Chrysalis never edits `.claude/settings.json` for you. Add this to the project's
           {"type": "command", "command": "python \"CHRYSALIS/hooks/block_undeclared_npx.py\"", "timeout": 10},
           {"type": "command", "command": "python \"CHRYSALIS/hooks/no-heredoc-file-write.py\"", "timeout": 10}
         ]
+      },
+      {
+        "matcher": "Write|Edit|MultiEdit|mcp__serena__.*",
+        "hooks": [
+          {"type": "command", "command": "python \"CHRYSALIS/hooks/block_deferral_markers.py\"", "timeout": 10}
+        ]
       }
     ]
   }
@@ -46,4 +53,5 @@ Chrysalis never edits `.claude/settings.json` for you. Add this to the project's
 ```
 
 Each hook reads the tool call as JSON on stdin and prints a `deny` decision, or nothing. A payload it
-cannot read is let through rather than blocked.
+cannot read is let through rather than blocked. That is a deliberate exception to U17: a hook that
+refused every call it could not parse would stop all work, not just the mistake it targets.

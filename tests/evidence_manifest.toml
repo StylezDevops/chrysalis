@@ -152,3 +152,28 @@ quote = "G6"
 rule = "K7"
 project = "MEMORY_SUBSTRATE"
 path = "ci-runs-locally.md"
+
+# The in-work project: cited by generic key and by file names that do not identify it.
+[[cite]]
+rule = "U17"
+project = "INWORK"
+path = "docs/post-TDA-fixes.md"
+quote = "assumes things are fine"
+
+[[cite]]
+rule = "U18"
+project = "INWORK"
+path = "docs/USERGUIDE-Dataverse-Delta-Sync.md"
+quote = "Reports outcomes, not attempts"
+
+[[cite]]
+rule = "U19"
+project = "INWORK"
+path = "docs/YAML-CONFIGURATION-REFERENCE.md"
+quote = "defined but not currently used"
+
+[[cite]]
+rule = "U20"
+project = "INWORK"
+path = "internaldocs/FOR-NOW-IMPLEMENTATIONS.md"
+quote = "simulate successful processing"

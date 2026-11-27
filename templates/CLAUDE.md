@@ -8,7 +8,8 @@
 2. The method: `{{framework_path}}/METHOD.md`. Read the sections for the rule IDs below. Their text lives
    there only; this file does not repeat it.
 3. `docs/handover.md`: where the last session stopped.
-4. `~/.claude/engineering-guardrails.md`: general code-writing guardrails.
+4. `docs/names-that-do-not-exist.md`: names agents have invented here, and the real ones.
+5. `~/.claude/engineering-guardrails.md`: general code-writing guardrails.
 
 ## Rules in force
 
@@ -42,6 +43,9 @@ changing the config, and update this list from its output.
 | Decisions | `docs/adr/` |
 | Spec, parts, checks | `.lusser/` (check: `lusser.py check`) |
 | Session state | `docs/handover.md` |
+| Recurring defect patterns | `docs/bug-classes.md` |
+| What has been shown to work | `docs/verification.md` |
+| Fix, audit and change records | `docs/standards/` templates |
 
 ## Project-specific rules
 

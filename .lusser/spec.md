@@ -22,6 +22,7 @@ Assumed p: 0.95
 - C11. Each rule text exists once in the framework. Generated project files reference it. Where a copy is unavoidable, a check diffs the 2 copies.
 - C12. The worktree procedure covers creation from the current base, isolated build directories, ports and databases, and cleanup after merge: one worktree with its branch and build directory, and a sweep of every merged agent branch and worktree left behind. It also states when not to use worktrees.
 - C13. The framework is validated against copies of 2 substantially different existing repositories and 1 new project. For each existing repo, every pre-existing file's hash is identical before and after init.
+- C14. Rules, templates and hooks drawn from the in-work project cite it only as "the in-work project". No tracked file names it, its client or its people, and a test proves it.
 
 ## Ambiguities
 
@@ -53,3 +54,5 @@ Assumed p: 0.95
       Resolution: Point at the global guardrails file; install it if absent. (human, 2026-11-25)
 - A14. Q: Part budget. 14 is proposed: METHOD.md, config schema, init script, init skill, templates set, gate template and runner, register template, hooks set, hook test runner, worktree procedure, docs-currency check, lusser tests, validation harness, README. Accept 14, or cut scope?
       Resolution: Budget 14 parts. (human, 2026-11-25) Raised to 16 for the R-4 and R-5 fixes. (human, 2026-11-26)
+- A15. Q: The in-work project was read in full. Adopt its findings as proposed: U17 to U20, strengthened U2 to U15, K10 on a new `risk.mutates_data` flag, a guardrails section, new templates, gate examples and a deferral-marker hook, plus the practices it does well?
+      Resolution: Approved as proposed, with its good practices added as well. It is referenced only as "the in-work project". (human, 2026-11-27)

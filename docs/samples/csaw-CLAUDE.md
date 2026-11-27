@@ -8,7 +8,8 @@ An audio effect plugin ported from a Python reference.
 2. The method: `<chrysalis>/METHOD.md`. Read the sections for the rule IDs below. Their text lives
    there only; this file does not repeat it.
 3. `docs/handover.md`: where the last session stopped.
-4. `~/.claude/engineering-guardrails.md`: general code-writing guardrails.
+4. `docs/names-that-do-not-exist.md`: names agents have invented here, and the real ones.
+5. `~/.claude/engineering-guardrails.md`: general code-writing guardrails.
 
 ## Rules in force
 
@@ -30,8 +31,12 @@ Universal:
 - U14: Ask or decide
 - U15: Test what changed
 - U16: Parallel work is earned
+- U17: Fail closed
+- U18: Every unit has one outcome
+- U19: Config is checked when it loads
+- U20: A mechanism counts once it is shown to run
 
-Conditional, selected from `config_project.json` on 2026-11-26:
+Conditional, selected from `config_project.json` on 2026-11-27:
 
 - K5 (because `risk.realtime`)
 - K7 (because `ci.remote == "on-request"`)
@@ -58,6 +63,9 @@ changing the config, and update this list from its output.
 | Decisions | `docs/adr/` |
 | Spec, parts, checks | `.lusser/` (check: `lusser.py check`) |
 | Session state | `docs/handover.md` |
+| Recurring defect patterns | `docs/bug-classes.md` |
+| What has been shown to work | `docs/verification.md` |
+| Fix, audit and change records | `docs/standards/` templates |
 
 ## Project-specific rules
 

@@ -14,3 +14,12 @@ answers go in the pull request or the story, and each "should" becomes an automa
 | Attack test | Expected result | Test path |
 |---|---|---|
 | | rejected | |
+
+## Crash points
+
+For each step that changes state, what is left behind if the process dies there, and how the next
+run recovers. A row with no recovery is a defect.
+
+| Crash point | State left | Recovery | Test path |
+|---|---|---|---|
+| | | | |

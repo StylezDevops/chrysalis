@@ -160,3 +160,9 @@ ref    = "docs/validation.md"
 clause = "C7"
 kind   = "human-accept"
 ref    = "human, 2026-11-26: signed off docs/samples/csaw-initial.md and csaw-CLAUDE.md (gate A1)"
+
+[[check]]
+clause = "C14"
+kind   = "real-input"
+ref    = "tests/test_chrysalis.py"
+note   = "Unnamed scans every git-tracked file for hashed name tokens; a planted-name control proves the detector sees them"

@@ -29,7 +29,7 @@ ROOTS = json.loads((ROOT / "tests" / "evidence_roots.local.json").read_text(enco
 REPORT = ROOT / "docs" / "validation.md"
 
 BASE_RISK = {"live_production": False, "handles_money": False, "handles_personal_data": False,
-             "auth": False, "realtime": False, "client_engagement": False}
+             "auth": False, "realtime": False, "client_engagement": False, "mutates_data": False}
 
 
 def config(name, description, problem, users, stage, existing, languages, platforms, **risk):

@@ -16,7 +16,8 @@
     "handles_personal_data": false,
     "auth": false,
     "realtime": false,
-    "client_engagement": false
+    "client_engagement": false,
+    "mutates_data": false
   },
   "ci": {"remote": "on-request", "local_gate": "python tests/run_all.py"},
   "agents": {"max_parallel_agents": 2}

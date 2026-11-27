@@ -45,7 +45,7 @@ class Evidence(unittest.TestCase):
 class Manifest(unittest.TestCase):
     def test_C1_manifest_names_no_client_project(self):
         allowed = {"CHRYSOS", "MIDAS", "SUBSTRATE", "MEMORY_CHRYSOS", "MEMORY_MIDAS", "MEMORY_SUBSTRATE",
-                   "PROJECTS_RULES"}
+                   "PROJECTS_RULES", "INWORK"}
         self.assertEqual({c["project"] for c in MANIFEST} - allowed, set())
 
 

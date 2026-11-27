@@ -18,7 +18,7 @@ from helpers import (DELETE, FIXTURES, ROOT, git, make_git_repo, run, tempdir,  
 
 REQUIRED = ["project__name", "project__description", "project__problem", "project__users", "stage",
             "repo__existing", "stack__languages", "risk__live_production", "risk__handles_money",
-            "risk__handles_personal_data", "risk__auth", "risk__realtime", "risk__client_engagement",
+            "risk__handles_personal_data", "risk__auth", "risk__realtime", "risk__client_engagement", "risk__mutates_data",
             "ci__remote", "agents__max_parallel_agents"]
 
 
@@ -99,7 +99,7 @@ class Validation(unittest.TestCase):
 
 # ------------------------------------------------------------------ C2 rule selection
 FLAGS = ["live_production", "handles_money", "handles_personal_data", "auth", "realtime",
-         "client_engagement"]
+         "client_engagement", "mutates_data"]
 
 
 def reference_selection(cfg) -> set:
@@ -120,6 +120,8 @@ def reference_selection(cfg) -> set:
         out.add("K7")
     if r["client_engagement"]:
         out.add("K8")
+    if r["mutates_data"]:
+        out.add("K10")
     return out
 
 
@@ -159,7 +161,7 @@ class Rules(unittest.TestCase):
         r = run("rules", "--list-conditions")
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
         ids = re.findall(r"(?m)^(K\d+)\s", r.stdout)
-        self.assertEqual(ids, [f"K{n}" for n in range(1, 10)])
+        self.assertEqual(ids, [f"K{n}" for n in range(1, 11)])
 
 
 # ------------------------------------------------------------------ C4, C5, C6 existing repo
@@ -578,6 +580,38 @@ class SelfCheck(unittest.TestCase):
             (t / "x.md").write_text(f"Intro.\n\n{sentence}\n", encoding="utf-8")
             r = run("check", "--templates", t)
             self.assertEqual(r.returncode, 1, r.stdout)
+
+
+# ------------------------------------------------------------------ C14 the in-work project stays unnamed
+# Hashes of lower-case name tokens that must never appear in a tracked file: the in-work project, its
+# client and its people. Stored as hashes so this test does not commit the names it guards.
+UNNAMED = {"2df5a4a7dc5296fa", "d715c79843c99608", "6facd5c71d687fb5", "2504ca8240d180e1",
+           "0ba0852ec3860b14", "d2db738e193ec624", "d42e789f1c33e4b5"}
+
+
+def named_tokens(text: str) -> set:
+    import hashlib
+    return {t for t in re.findall(r"[a-z0-9]+", text.lower())
+            if hashlib.sha256(t.encode()).hexdigest()[:16] in UNNAMED}
+
+
+class Unnamed(unittest.TestCase):
+    def test_C14_no_tracked_file_names_the_in_work_project(self):
+        files = git(ROOT, "ls-files").splitlines()
+        self.assertGreater(len(files), 50)
+        hits = {}
+        for rel in files:
+            path = ROOT / rel
+            if not path.is_file():
+                continue
+            found = named_tokens(path.read_text(encoding="utf-8", errors="replace"))
+            if found:
+                hits[rel] = len(found)
+        self.assertEqual(hits, {}, "tracked files name the in-work project (counts only, names withheld)")
+
+    def test_C14_the_detector_sees_a_planted_name(self):
+        planted = "".join(["sync", "v2"]) + " and " + "".join(["ke", "rv"])
+        self.assertEqual(len(named_tokens(planted)), 2)
 
 
 if __name__ == "__main__":

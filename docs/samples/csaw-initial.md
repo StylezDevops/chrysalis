@@ -1,6 +1,6 @@
 # CSAW: project definition
 
-Generated 2026-11-26 from `config_project.json`. Sections marked TO DO need the project owner or a session of
+Generated 2026-11-27 from `config_project.json`. Sections marked TO DO need the project owner or a session of
 interrogation (see the `chrysalis-init` skill). Everything else came from the config.
 
 ## Purpose
@@ -50,6 +50,10 @@ Universal:
 - U14: Ask or decide
 - U15: Test what changed
 - U16: Parallel work is earned
+- U17: Fail closed
+- U18: Every unit has one outcome
+- U19: Config is checked when it loads
+- U20: A mechanism counts once it is shown to run
 
 Conditional:
 
