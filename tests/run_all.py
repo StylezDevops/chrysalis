@@ -36,6 +36,8 @@ INJECTIONS = {
     "register-skip-closed": ("chrysalis", "C9"),
     "claude-md-copies-text": ("chrysalis", "C11"),
     "worktree-skip-merge-check": ("chrysalis", "C12"),
+    "worktree-keep-build-dir": ("chrysalis", "C12"),
+    "worktree-sweep-skip-merge-check": ("chrysalis", "C12"),
     "check-ignores-evidence": ("chrysalis", "C1"),
     "hooks-allow-all": ("hooks", "C10"),
     "lusser-no-ambiguity": ("lusser", "L"),

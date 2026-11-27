@@ -6,6 +6,7 @@ Date: 2026-11-25. Read-only investigation. Nothing in any source project was cha
 
 | Project | Kind | History | Evidence read |
 |---|---|---|---|
+| In-work project | the source of a large share of the original rules and methodology; not named here | | |
 | Client web projects | evidence read under their own change-control rules, not listed here | | |
 | Substrate | owned web3 product (FastAPI, SvelteKit, Solidity) | 1047 commits, 2026-06-13 to now | CLAUDE.md, .lusser, register, pre-push, 81 memories |
 | MIDAS | owned audio plugin (C++/JUCE) | 2026-07-02 to 2026-09-11 | CLAUDE.md, VERIFICATION.md, BUG_CLASSES.md, 81 memories |
@@ -16,7 +17,9 @@ Two subagents read the source projects. 9 of their claims were checked against t
 
 ## The method, as it evolved
 
-INFERRED from dates. The same method gets stricter with each project.
+INFERRED from dates. The same method gets stricter with each project. A large share of the original
+rules and methodology came from an in-work project that this report does not name; the projects below
+carried that material forward and added to it.
 
 1. **Client web work (from April):** written rules arrive: a test pyramid, a threat model for each feature, attack scenarios that must fail, performance budgets, conventional commits.
 2. **MIDAS (July):** "measure before reasoning" becomes a hard rule. Numbered gates. A bug-class catalogue (`docs/BUG_CLASSES.md`, C1 to about C81).
@@ -64,7 +67,6 @@ INFERRED from dates. The same method gets stricter with each project.
   - a machine-wide `taskkill`;
   - worktrees created from a stale base;
   - Serena edits landing in the main checkout.
-- **Nothing cleans up afterwards.** Substrate has 4 `worktree-agent-*` branches that point at a commit already on `main`, plus 3 left-over worktrees.
 
 ## Reusable assets
 
@@ -94,12 +96,3 @@ INFERRED from dates. The same method gets stricter with each project.
 4. **CI wording.** "Merge only on green CI" sits beside workflow_dispatch-only CI. The real gate is local.
 5. **Counts drift.** CHRYSOS: "five PreToolUse guards" against 8 hooks. Substrate CLAUDE.md: 8 CI stages against 13.
 6. **Formats drift.** ADR format drifts between projects and inside CHRYSOS. MIDAS has none of the later structure: no hooks, ADRs, register, S0 or lusser.
-
-## Gaps the framework should close (improvements, not copies)
-
-- A cleanup step after a worktree agent's work merges: remove the worktree, branch and build directory.
-- lusser has no tests of its own; it gets tests in the framework.
-- 1 copy of each rule, referenced, not pasted. A parity check where 2 copies are unavoidable.
-- An explicit rule for when to ask and when to decide, keyed to project state.
-- Size limits on agent-facing files. History goes to archive files, not to the file an agent reads every session.
-- Hooks that are generic and configurable, each shipped with its own test (3 are in `hooks/`).

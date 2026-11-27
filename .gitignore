@@ -27,6 +27,9 @@ __pycache__/
 *.log
 validation-runs/
 
+# Editor tooling state
+.serena/
+
 # Machine-specific paths
 *.local.json
 

@@ -504,6 +504,55 @@ class Worktrees(unittest.TestCase):
         self.assertNotIn("agent/job4", git(self.repo, "branch", "--list"))
         self.assertEqual(git(self.repo, "worktree", "list").count("\n"), 0)
 
+    def merge(self, branch):
+        git(self.repo, "-c", "user.name=t", "-c", "user.email=t@example.invalid", "merge", "-q", "--no-ff",
+            "-m", f"merge {branch}", branch)
+
+    def test_C12_finish_removes_the_build_directory(self):
+        self.assertEqual(self.wt("new", "job5").returncode, 0)
+        self.commit_in(self.wt_root / "job5", "d.txt")
+        self.merge("agent/job5")
+        build = self.base / "build-job5"
+        (build / "obj").mkdir(parents=True)
+        (build / "obj" / "x.o").write_text("o\n", encoding="utf-8")
+        r = self.wt("finish", "job5", "--build-dir", build)
+        self.assertEqual(r.returncode, 0, r.stdout)
+        self.assertFalse(build.exists(), "build directory left behind")
+
+    def test_C12_finish_refuses_a_build_dir_that_holds_the_repo(self):
+        self.assertEqual(self.wt("new", "job6").returncode, 0)
+        r = self.wt("finish", "job6", "--build-dir", self.base)
+        self.assertEqual(r.returncode, 1, r.stdout)
+        self.assertTrue((self.repo / "a.txt").exists())
+        self.assertTrue((self.wt_root / "job6").exists())
+
+    def test_C12_sweep_removes_merged_agent_leftovers_and_keeps_the_rest(self):
+        # merged, with a worktree (this tool's naming)
+        self.assertEqual(self.wt("new", "done").returncode, 0)
+        self.commit_in(self.wt_root / "done", "e.txt")
+        self.merge("agent/done")
+        # merged, branch only (Claude Code's naming), pointing at a commit already on main
+        git(self.repo, "branch", "worktree-agent-abc123")
+        # unmerged agent work, and a merged branch that is not an agent's
+        self.assertEqual(self.wt("new", "open").returncode, 0)
+        self.commit_in(self.wt_root / "open", "f.txt")
+        git(self.repo, "branch", "feature/keep")
+
+        dry = run("worktree", "sweep", "--repo", self.repo)
+        self.assertEqual(dry.returncode, 0, dry.stdout)
+        self.assertIn("worktree-agent-abc123", git(self.repo, "branch", "--list"), "dry run removed a branch")
+        self.assertTrue((self.wt_root / "done").exists(), "dry run removed a worktree")
+
+        r = run("worktree", "sweep", "--apply", "--repo", self.repo)
+        self.assertEqual(r.returncode, 0, r.stdout)
+        branches = git(self.repo, "branch", "--list")
+        self.assertNotIn("agent/done", branches)
+        self.assertNotIn("worktree-agent-abc123", branches)
+        self.assertFalse((self.wt_root / "done").exists())
+        self.assertIn("agent/open", branches, "unmerged agent work was removed")
+        self.assertTrue((self.wt_root / "open" / "f.txt").exists())
+        self.assertIn("feature/keep", branches, "a non-agent branch was removed")
+
 
 # ------------------------------------------------------------------ C1, C11 framework self-check
 class SelfCheck(unittest.TestCase):

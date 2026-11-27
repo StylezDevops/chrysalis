@@ -20,7 +20,7 @@ Assumed p: 0.95
 - C9. A defect recorded through the framework produces, at minimum, a register row with a measured number and a regression test that fails without the fix. Whether it also produces a gate, rule or ADR is a recorded decision.
 - C10. Every hook shipped by the framework has a test with block cases and allow cases, and the tests run in 1 command.
 - C11. Each rule text exists once in the framework. Generated project files reference it. Where a copy is unavoidable, a check diffs the 2 copies.
-- C12. The worktree procedure covers creation from the current base, isolated build directories, ports and databases, and cleanup after merge. It also states when not to use worktrees.
+- C12. The worktree procedure covers creation from the current base, isolated build directories, ports and databases, and cleanup after merge: one worktree with its branch and build directory, and a sweep of every merged agent branch and worktree left behind. It also states when not to use worktrees.
 - C13. The framework is validated against copies of 2 substantially different existing repositories and 1 new project. For each existing repo, every pre-existing file's hash is identical before and after init.
 
 ## Ambiguities

@@ -182,7 +182,10 @@ Worktree procedure:
 4. If an editor tool is bound to the main checkout (for example Serena), the agent uses it for reading
    only.
 5. After merging, the main session runs `git status --porcelain` and `git diff --exit-code` on its own
-   checkout, then removes the worktree, its branch and its build directory.
+   checkout, then removes the worktree, its branch and its build directory with
+   `chrysalis.py worktree finish NAME --build-dir DIR`.
+6. At the end of a session, `chrysalis.py worktree sweep` lists every merged agent branch
+   (`agent/*`, `worktree-agent-*`) and its worktree; `--apply` removes them. Unmerged or dirty ones stay.
 
 Do not use worktrees when every package touches the same files, when the build tree or machine-wide
 processes cannot be isolated, or when the work fits in the main session.

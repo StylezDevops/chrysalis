@@ -29,7 +29,7 @@ ambiguity in the spec before building, and ties every spec clause to a check.
 | `METHOD.md` | The rules. 16 universal (U1 to U16) and 9 conditional (K1 to K9), each with its evidence. |
 | `docs/discovery.md` | How the rules were found: which projects, which files, what was inferred. |
 | `config/` | `config_project.json` fields and a filled example. |
-| `scripts/chrysalis.py` | The tool: validate, rules, inspect, plan, apply, gates, register check, worktree, check. Standard library only. |
+| `scripts/chrysalis.py` | The tool: validate, rules, inspect, plan, apply, gates, register check, worktree (new, finish, sweep), check. Standard library only. |
 | `templates/` | What `apply` writes: CLAUDE.md, initial.md, backlog, register, handover, ADR, Definition of Ready and Done, change request, threat model, gates.toml, lusser files. |
 | `skills/` | Claude Code skills: `chrysalis-init` plus 6 more (table below). |
 | `hooks/` | 3 Claude Code PreToolUse hooks, each with tests. |

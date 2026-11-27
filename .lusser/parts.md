@@ -9,7 +9,7 @@ executes it and no kind fits it. Tests and fixtures are checks, not parts.
 | 2 | chrysalis.py: config validation and rule selection | module | C2, C3; stdlib json and a 60-line condition parser instead of a schema library | no |
 | 3 | chrysalis.py: inspect, plan, apply | module | C4 to C7 | no |
 | 4 | chrysalis.py: gates and register check | module | C8, C9 | no |
-| 5 | chrysalis.py: worktree new and finish | module | C12; closes the cleanup gap found in discovery | no |
+| 5 | chrysalis.py: worktree new, finish and sweep | module | C12; finish removes one worktree with its branch and build directory, sweep removes every merged agent branch left behind | no |
 | 6 | templates/ (15 files) | interface | C7, C11; what apply writes | no |
 | 7 | config/ (field reference and example) | config | C3 | no |
 | 8 | guardrails/engineering-guardrails.md | config | A13; copy installed when absent, drift checked by `check` | no |
