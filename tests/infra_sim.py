@@ -28,6 +28,7 @@ Stages:
 
 import argparse
 import json
+import os
 import pathlib
 import shutil
 import subprocess
@@ -76,9 +77,14 @@ def checkov(side: str, fw: str, folder: str, checks: list[str]) -> tuple[set, in
     """(failed check IDs among `checks`, exit code) for one fixture folder."""
     code, out = sh(["docker", "run", "--rm", *vol(FIX / side / folder, "/src"), IMG["checkov"], "-d", "/src",
                     "--framework", fw, "--check", ",".join(checks), "--compact", "--quiet", "-o", "json"])
+    # The first JSON value in the output; checkov prints more after it on Linux (measured in CI), which a
+    # whole-string json.loads refused.
+    starts = [i for i in (out.find("{"), out.find("[")) if i >= 0]
     try:
-        data = json.loads(out[out.index("{") if out.lstrip().startswith("{") else out.index("["):])
+        data, _ = json.JSONDecoder().raw_decode(out[min(starts):]) if starts else (None, 0)
     except ValueError:
+        data = None
+    if data is None:
         return {f"<checkov output unreadable: {out[:200]}>"}, code
     reports = data if isinstance(data, list) else [data]
     return {c["check_id"] for r in reports for c in (r.get("results") or {}).get("failed_checks", [])}, code
@@ -132,10 +138,13 @@ def stage_validate(_control):
 
 
 def stage_plan(_control):
-    with tempfile.TemporaryDirectory() as d:
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as d:
         work = pathlib.Path(d) / "tf"
         shutil.copytree(FIX / "good" / "terraform-plan", work)
-        run = ["docker", "run", "--rm", *vol(work, "/w", ro=False), "-w", "/w", IMG["terraform"]]
+        # As the calling user, so what terraform writes into the mounted folder can be cleaned up (measured
+        # in CI: as root, the temp folder could not be removed and the run crashed).
+        user = ["--user", f"{os.getuid()}:{os.getgid()}", "-e", "HOME=/tmp"] if hasattr(os, "getuid") else []
+        run = ["docker", "run", "--rm", *user, *vol(work, "/w", ro=False), "-w", "/w", IMG["terraform"]]
         for step in (["init", "-input=false", "-no-color"], ["validate", "-no-color"],
                      ["plan", "-input=false", "-no-color", "-out=plan.bin"]):
             code, out = sh(run + step)
@@ -351,6 +360,8 @@ def main() -> int:
                 problems, findings = STAGES[name](args.control)
             except subprocess.TimeoutExpired as e:
                 problems, findings = [f"timed out: {e.cmd[:3]}"], []
+            except Exception as e:  # a stage that raises is that stage's failure; the run goes on (U18)
+                problems, findings = [f"raised {type(e).__name__}: {e}"], []
             for fid, where in findings:
                 print(f"FINDING {fid} {where}")
             status = "PASS" if not problems else "FAIL"
