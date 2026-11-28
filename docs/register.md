@@ -20,6 +20,7 @@ One row per defect (METHOD U3). Rows are never renumbered or deleted. Checked by
 | R-10 | CLOSED | `inspect` stopped at 3 folder levels without saying so, so assets deeper in a monorepo were missed silently | folders cut off by the depth limit and not reported, test repo | 1 | 0 | tests/test_chrysalis.py::test_C6_folders_past_the_depth_limit_are_reported_and_reachable | rule: the inventory lists every folder it did not walk, plan prints a note, and --max-depth raises the limit (U13) |
 | R-11 | CLOSED | `lusser parts` kept `main` as its fixed default base, so on a repo whose default branch is `trunk` it failed unless `--base` was passed; R-8 had fixed the same promise for `worktree` only | base-branch family members failing on a `trunk` repo with the config naming it (tests/test_worktrees.py::BaseBranchFamily) | 1 | 0 | tests/test_worktrees.py::test_C12_every_member_takes_its_base_from_the_config | rule: U21; the base-branch promise is tested once per member, so a tool added later fails until it reads the config the same way |
 | R-12 | CLOSED | `scripts/chrysalis.py` had grown to 1,341 lines and `tests/test_chrysalis.py` to 768, against the about-500-line limit U9 sets for a source file, and no check enforced the limit | lines in the largest Python file under scripts/, hooks/, tests/ and skills/ | 1341 | 444 | tests/test_governance.py::test_C15_check_fails_on_a_source_file_over_the_line_limit | rule: U9; `chrysalis.py check` (gate F1) now fails on any source file over 500 lines; the tool is 14 modules by responsibility and the spec tests 3 files |
+| R-13 | CLOSED | `gates run --controls` counted any non-zero exit as a control going red, so a control that crashed or failed for an unrelated reason passed without showing the gate could see its defect (U2) | controls accepted that fail without the gate's finding, gate fixture whose control only exits 1 | 1 | 0 | tests/test_checks.py::test_C8_control_that_fails_for_another_reason_proves_nothing | rule: U2; every automated gate declares control_expect, a pattern its own detector prints for the planted defect, and gates validate requires it |
 
 R-8 to R-10 came from an outside review of `chrysalis.py` on 2026-11-27. The same review raised 2
 points that were not defects and were hardened anyway: a K-table flag that is not true or false now
@@ -30,6 +31,8 @@ R-11 was found the same day by applying U21 to R-8: the base-branch promise had 
 `worktree` and not for `lusser parts`. `BaseBranchFamily` now runs it once per tool that picks a base.
 
 R-12 was found by the outside review of 2026-11-28 being acted on: the new commands pushed `chrysalis.py` further past U9's limit, and the check written for it found the test file over the limit too.
+
+R-13 came from the same outside review's second look (2026-11-28): the runner enforced less than the template promised.
 
 R-4 and R-5 were held at the 14-part budget until the budget was raised to 16 (2026-11-26), then fixed
 with regression tests that failed before the fix.

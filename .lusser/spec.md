@@ -4,7 +4,7 @@ Context: the method already exists across my projects, including MIDAS, Substrat
 CHRYSOS (see docs/discovery.md). This repo extracts it into 1 canonical, configurable source
 that can be cloned into a new project or laid over an existing one without damaging it.
 
-Budget: 36 parts
+Budget: 37 parts
 Assumed p: 0.95
 
 ## Clauses
@@ -72,3 +72,5 @@ Assumed p: 0.95
       Resolution: Scale U10 by class as proposed. (human, 2026-11-28)
 - A21. Q: scripts/chrysalis.py reached 1,341 lines against U9's limit of about 500 (R-12). Fix it now by splitting it, and the test file it led to, by responsibility?
       Resolution: "Refactor that and split it up properly and logically." Budget 36 for the split as one rework part. (human, 2026-11-28)
+- A22. Q: The outside review's second look found that gates run --controls takes any non-zero exit as proof. Fix it as R-13 (control_expect, required) and raise the budget from 36 to 37?
+      Resolution: Approved; budget 37; push once green. (human, 2026-11-28)

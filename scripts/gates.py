@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import pathlib
+import re
 import subprocess
 import tomllib
 
@@ -33,6 +34,15 @@ def load_gates(path: pathlib.Path):
                 problems.append(f"{gid}: pass must be \"exit 0\" (the only rule the runner reads)")
             if not str(g.get("control", "")).strip():
                 problems.append(f"{gid}: automated gate has no control (a command that must fail)")
+            expect = str(g.get("control_expect", "")).strip()
+            if not expect:
+                problems.append(f"{gid}: no control_expect (a pattern the gate's own detector prints when it "
+                                "catches the planted defect; a bare non-zero exit proves nothing, R-13)")
+            else:
+                try:
+                    re.compile(expect)
+                except re.error as e:
+                    problems.append(f"{gid}: control_expect is not a valid pattern ({e})")
         elif kind == "human":
             if not str(g.get("procedure", "")).strip():
                 problems.append(f"{gid}: human gate has no procedure")
@@ -62,9 +72,19 @@ def cmd_gates(args) -> int:
             code = subprocess.run(cmd, shell=True, stdout=fh, stderr=subprocess.STDOUT,
                                   timeout=g.get("timeout", 3600)).returncode
         if args.controls:
-            red = code != 0 or sabotaged("gates-ignore-control")
-            status = f"CONTROL RED (exit {code}) as required" if red else "control did not fail (exit 0)"
-            failed += 0 if red else 1
+            # Red only when the control failed AND its output carries the gate's own finding for the
+            # planted defect. A crash or an unrelated failure is not proof that the gate can see it.
+            output = log.read_text(encoding="utf-8", errors="replace")
+            found = re.search(g["control_expect"], output, re.MULTILINE) is not None
+            if sabotaged("gates-ignore-control"):
+                code, found = 1, True
+            if code == 0:
+                status = "control did not fail (exit 0)"
+            elif not found:
+                status = f"control did not prove the gate (exit {code}, no match for control_expect)"
+            else:
+                status = f"CONTROL RED (exit {code}) as required"
+            failed += 0 if code != 0 and found else 1
         else:
             status = "PASS" if code == 0 else f"FAIL (exit {code})"
             failed += 0 if code == 0 else 1

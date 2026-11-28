@@ -27,7 +27,7 @@ may lower it below what the diff shows: `classify --declared C0` fails when the 
 | Rule | Grade | C0 asks for | C1 asks for | C2 asks for | Enforced by |
 |---|---|---|---|---|---|
 | U1 | control | in full | in full | in full | `register check` needs the before and after numbers; measuring relies on people |
-| U2 | control | in full | in full | in full | `gates validate` needs a control per gate; `gates run --controls` fails a control that stays green |
+| U2 | control | in full | in full | in full | `gates validate` needs a control and a `control_expect` per gate; `gates run --controls` fails a control that stays green or fails without the gate's own finding |
 | U3 | scaled | for a defect, a register row and a regression test | also the shape hunt and the recorded gate, rule or ADR decision | also a bug-class entry when the shape can recur | `register check` |
 | U4 | scaled | none beyond the tests that already cover the line | a test of the change, seen red first | also a sweep or property test, and the whole-pipeline test | people and the audit |
 | U5 | scaled | none beyond reading the diff (U13) | 1 fresh-context audit round | 2 audit rounds | people; `templates/audit-record.md` |

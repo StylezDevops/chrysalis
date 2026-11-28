@@ -41,3 +41,4 @@ executes it and no kind fits it. Tests and fixtures are checks, not parts.
 | 34 | .pre-commit-hooks.yaml | config | C18; the deferral hook for the pre-commit framework, run for real by tests/precommit_real.sh | no |
 | 35 | chrysalis.py skills install | interface | C18; never overwrites a different skill; --prefix installs beside it | no |
 | 36 | fix R-12: chrysalis.py split into 14 modules by responsibility, spec tests into 3 files, and a line limit in check | rework | found while acting on the 2026-11-28 review (A21) | no |
+| 37 | fix R-13: a control counts as red only with the gate's own finding (control_expect) | rework | found by the outside review's second look (A22) | no |

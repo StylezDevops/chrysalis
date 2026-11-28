@@ -277,19 +277,21 @@ measured on 2026-11-28, Windows 11, Python 3.14. Each line can be re-run with it
 | Each of 20 deliberate defects is caught by a test naming its clause | `python tests/run_all.py --sweep` | 20 of 20 caught |
 | `apply` on copies of 4 real repositories and 1 new project | `python tests/validate_real.py` | 0 files changed or deleted across 5,725; all 5 pass; see `docs/validation.md` |
 | 8 automated gates, including D1: this repo passes its own `doctor --release` | `python scripts/chrysalis.py gates run` | 8 pass |
-| Every gate's control goes red | `python scripts/chrysalis.py gates run --controls` | 8 of 8 red |
+| Every gate's control goes red, and its output shows the gate's own finding for the planted defect | `python scripts/chrysalis.py gates run --controls` | 8 of 8 red, each for the right reason |
 | Spec coverage and part budget | `python skills/lusser/scripts/lusser.py check` | OK; 18 clauses covered, 36 of 36 parts |
 | The deferral hook through the real pre-commit framework | `bash tests/precommit_real.sh` | refuses an uncited marker, allows a cited one (CI) |
 
-12 defects have been found in Chrysalis itself and fixed with regression tests: 3 by the
+13 defects have been found in Chrysalis itself and fixed with regression tests: 3 by the
 real-repository run; 2 where a byte-order mark written by PowerShell broke file reading; 2 by running
 the suites in a fresh clone before CI was added (a skipped test reported as a pass, and the validation
 crashing instead of skipping); 3 from an outside code review (worktrees ignoring the configured
 default branch, a pipe inside a table cell shifting the register's columns, and a silent folder-depth
 limit); 1 found by checking that review's first fix against its siblings (U21): `lusser parts` still
-ignored the configured default branch; and 1 while acting on a second review: `chrysalis.py` had grown
+ignored the configured default branch; 1 while acting on a second review: `chrysalis.py` had grown
 to 1,341 lines against the method's own limit of 500, so it is now 14 modules and `check` enforces the
-limit. They are in `docs/register.md` with their numbers.
+limit; and 1 from that review's second look: `gates run --controls` took any non-zero exit as a control
+going red, so every gate now declares the finding its control must show. They are in `docs/register.md`
+with their numbers.
 
 The real-repository validation and the evidence test read local copies of the source projects. Their
 paths are in a gitignored file, `tests/evidence_roots.local.json`. On another machine, CI included, the

@@ -159,7 +159,11 @@ def main() -> int:
     if args.sabotage:
         suite, clause = INJECTIONS[args.sabotage]
         code, failed = run_suite(suite, args.sabotage)
-        print(f"sabotage {args.sabotage}: suite {suite} exit {code}, {len(failed)} failing test(s)")
+        hit = sorted(t for t in failed if f"_{clause}_" in t)
+        print(f"sabotage {args.sabotage}: suite {suite} exit {code}, {len(failed)} failing test(s), "
+              f"{len(hit)} naming {clause}")
+        for t in hit:
+            print(f"  {t}")
         return code
 
     total = 0

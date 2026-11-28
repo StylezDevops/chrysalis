@@ -14,7 +14,7 @@ Rewritten at the end of every session (U12). Read it first.
 ## Where it stopped (2026-11-28)
 
 An outside review asked for proportion, honest deferral, wider enforcement and independence from
-Claude Code. All four went in (spec clauses C15 to C18, ambiguities A19 to A21, budget 36):
+Claude Code. All four went in (spec clauses C15 to C18, ambiguities A19 to A22, budget 37):
 
 - `PROPORTION.md`: rule grades, change classes C0 to C2, what enforces each rule, adaptations.
 - `classify`, `doctor`, `skills install`; register states SCHEDULED and ACCEPTED; `--release`.
@@ -31,3 +31,6 @@ Claude Code. All four went in (spec clauses C15 to C18, ambiguities A19 to A21, 
 - R-12: `scripts/chrysalis.py` (1,341 lines) split into 14 modules by responsibility, and
   `tests/test_chrysalis.py` (768) into 3 files. `chrysalis.py check` (gate F1) now fails on any Python
   file over 500 lines; the largest is now `tests/test_governance.py`.
+- R-13: `gates run --controls` counted any non-zero exit as a control going red. Every automated
+  gate now declares `control_expect`, the finding its own detector prints for the planted defect, and
+  a control counts only when it fails and its output matches.

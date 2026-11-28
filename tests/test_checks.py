@@ -52,18 +52,40 @@ class Gates(unittest.TestCase):
 
     def test_C8_control_that_passes_is_a_failure(self):
         with tempdir() as d:
-            p = self.write(d, f'[[gate]]\nid = "G1"\npurpose = "p"\nkind = "automated"\nrun = \'{self.OK}\'\n'
-                              f'pass = "exit 0"\ncontrol = \'{self.OK}\'\n')
-            r = run("gates", "run", "--controls", "--file", p, cwd=d)
+            r = run("gates", "run", "--controls", "--file", self.gate(d, self.OK), cwd=d)
             self.assertEqual(r.returncode, 1, r.stdout)
             self.assertIn("control did not fail", r.stdout)
 
-    def test_C8_control_that_fails_is_a_pass(self):
+    # A control that stands in for the gate's detector: prints its finding (21) and fails.
+    DETECTS = 'python -c "import sys; print(sys.version_info[0] * 7); sys.exit(1)"'
+
+    def gate(self, d, control, expect="^21$"):
+        return self.write(d, f'[[gate]]\nid = "G1"\npurpose = "p"\nkind = "automated"\nrun = \'{self.OK}\'\n'
+                             f'pass = "exit 0"\ncontrol = \'{control}\'\ncontrol_expect = \'{expect}\'\n')
+
+    def test_C8_control_that_fails_with_the_gates_finding_is_a_pass(self):
+        with tempdir() as d:
+            r = run("gates", "run", "--controls", "--file", self.gate(d, self.DETECTS), cwd=d)
+            self.assertEqual(r.returncode, 0, r.stdout)
+            self.assertIn("CONTROL RED", r.stdout)
+
+    def test_C8_control_that_fails_for_another_reason_proves_nothing(self):
+        # R-13: any non-zero exit used to count as red, so a crash or an unrelated failure passed.
+        with tempdir() as d:
+            r = run("gates", "run", "--controls", "--file", self.gate(d, self.BAD), cwd=d)
+            self.assertEqual(r.returncode, 1, r.stdout)
+            self.assertIn("did not prove", r.stdout)
+
+    def test_C8_validate_requires_a_control_expectation_that_compiles(self):
         with tempdir() as d:
             p = self.write(d, f'[[gate]]\nid = "G1"\npurpose = "p"\nkind = "automated"\nrun = \'{self.OK}\'\n'
                               f'pass = "exit 0"\ncontrol = \'{self.BAD}\'\n')
-            r = run("gates", "run", "--controls", "--file", p, cwd=d)
-            self.assertEqual(r.returncode, 0, r.stdout)
+            r = run("gates", "validate", "--file", p)
+            self.assertEqual(r.returncode, 1, r.stdout)
+            self.assertIn("control_expect", r.stdout)
+            r = run("gates", "validate", "--file", self.gate(d, self.BAD, expect="(unclosed"))
+            self.assertEqual(r.returncode, 1, r.stdout)
+            self.assertIn("control_expect", r.stdout)
 
     def test_C8_generated_gates_file_validates(self):
         with tempdir() as d:

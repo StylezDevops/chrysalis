@@ -1,7 +1,10 @@
 # {{title}}: gates
 #
 # Every automated gate has a run command, pass = "exit 0", and a control: a command that runs the
-# same check against a known defect and must fail (U2). Human gates have a procedure instead.
+# same check against a known defect and must fail (U2), and a control_expect: a pattern (Python regex,
+# multiline) that the check's own output shows only when it caught that defect. A control counts as red
+# only when it fails and its output matches, so a crash or an unrelated failure proves nothing.
+# Human gates have a procedure instead.
 # Check this file:   python "{{framework_path}}/scripts/chrysalis.py" gates validate
 # Run the gates:     python "{{framework_path}}/scripts/chrysalis.py" gates run
 # Prove the gates:   python "{{framework_path}}/scripts/chrysalis.py" gates run --controls
@@ -16,6 +19,7 @@ kind = "automated"
 run = 'python "{{framework_path}}/skills/lusser/scripts/lusser.py" check'
 pass = "exit 0"
 control = 'python "{{framework_path}}/tests/lusser_control.py"'
+control_expect = 'FAIL: A1 has no human resolution'
 
 [[gate]]
 id = "R1"
@@ -24,6 +28,7 @@ kind = "automated"
 run = 'python "{{framework_path}}/scripts/chrysalis.py" register check --file docs/register.md --root .'
 pass = "exit 0"
 control = 'python "{{framework_path}}/scripts/chrysalis.py" register check --file "{{framework_path}}/tests/fixtures/register-broken.md" --root .'
+control_expect = '^FAIL R-1: CLOSED without both a before and an after measurement$'
 
 [[gate]]
 id = "A1"
@@ -40,6 +45,7 @@ procedure = "The project owner runs the agreed scenario and records acceptance, 
 # run = '{{local_gate}}'
 # pass = "exit 0"
 # control = 'a command that runs the tests with a known defect switched on, and fails'
+# control_expect = 'a failing test that names the clause the defect breaks'
 #
 # Gates most projects should have. Pick the line for the project's language and uncomment the gate.
 # Each control is a file kept under tests/fixtures/ that contains the defect the gate exists for.
@@ -54,6 +60,7 @@ procedure = "The project owner runs the agreed scenario and records acceptance, 
 # run = 'cmake --build build'                   # C++: -Wall -Wextra -Werror, clang-tidy WarningsAsErrors
 # pass = "exit 0"
 # control = 'the same command over tests/fixtures/lint-defect (an unused variable, an unawaited call)'
+# control_expect = 'the warning code the planted unused variable raises'
 #
 # [[gate]]
 # id = "Q2"
@@ -62,6 +69,7 @@ procedure = "The project owner runs the agreed scenario and records acceptance, 
 # run = 'dotnet stryker --break-at 50'          # or: npx stryker run, mutmut run, mull
 # pass = "exit 0"
 # control = 'the same run with a test deleted from tests/fixtures/mutation-control, which must fall below the threshold'
+# control_expect = 'the mutation score line, below the threshold'
 #
 # [[gate]]
 # id = "Q3"
@@ -70,6 +78,7 @@ procedure = "The project owner runs the agreed scenario and records acceptance, 
 # run = 'osv-scanner --recursive .'             # or: npm audit --audit-level=high, pip-audit, dotnet list package --vulnerable --include-transitive
 # pass = "exit 0"
 # control = 'osv-scanner --lockfile tests/fixtures/vulnerable.lock'
+# control_expect = 'the advisory ID planted in vulnerable.lock'
 #
 # [[gate]]
 # id = "Q4"
@@ -78,6 +87,7 @@ procedure = "The project owner runs the agreed scenario and records acceptance, 
 # run = 'gitleaks detect --no-git --source .'
 # pass = "exit 0"
 # control = 'gitleaks detect --no-git --source tests/fixtures/secret-planted'
+# control_expect = 'the rule ID gitleaks prints for the planted key'
 #
 # [[gate]]
 # id = "Q5"
@@ -86,6 +96,7 @@ procedure = "The project owner runs the agreed scenario and records acceptance, 
 # run = 'the test runner with its skip and per-category counts checked by a script'
 # pass = "exit 0"
 # control = 'the same check over a results file where a required category ran none'
+# control_expect = 'the name of the category that ran none'
 #
 # Pin the toolchain and the tools these gates use (global.json, .nvmrc or engines, .python-version or a
 # lock file, rust-toolchain.toml, a local tool manifest instead of global installs), so an unchanged
