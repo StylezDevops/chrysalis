@@ -1,0 +1,35 @@
+# Compliance with the method (chrysalis.py doctor) and the change class of each pull request
+# (chrysalis.py classify). Proposed by chrysalis.py apply; edit it like any other file.
+# The framework is pinned to the commit that generated this file, so the rules it checks change only
+# when someone moves the ref on purpose.
+
+name: chrysalis
+
+on:
+  pull_request:
+  push:
+    branches: [{{default_branch}}]
+
+permissions:
+  contents: read
+
+jobs:
+  doctor:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/checkout@v4
+        with:
+          repository: StylezDevops/chrysalis
+          ref: {{framework_ref}}
+          path: .chrysalis-framework
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Compliance (config, register, markers, gates, lusser, agent contract, handover)
+        run: python .chrysalis-framework/scripts/chrysalis.py doctor --repo .
+      - name: Change class and what it asks for
+        if: github.event_name == 'pull_request'
+        run: python .chrysalis-framework/scripts/chrysalis.py classify --repo . --base "origin/${{ github.base_ref }}"

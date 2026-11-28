@@ -166,3 +166,51 @@ clause = "C14"
 kind   = "real-input"
 ref    = "tests/test_chrysalis.py"
 note   = "Unnamed scans every git-tracked file for hashed name tokens; a planted-name control proves the detector sees them"
+
+[[check]]
+clause = "C15"
+kind   = "spec-test"
+ref    = "tests/test_governance.py"
+note   = "Grades, Classify and Adapt drive classify and validate on temporary git repositories"
+
+[[check]]
+clause = "C15"
+kind   = "property"
+ref    = "tests/test_governance.py"
+note   = "test_C15_property_overhead_scales_with_class: obligations grow with the class and no class drops a rule the one below asks for"
+
+[[check]]
+clause = "C16"
+kind   = "spec-test"
+ref    = "tests/test_governance.py"
+note   = "FaultStates covers each state, dates that have passed and --release"
+
+[[check]]
+clause = "C16"
+kind   = "real-input"
+ref    = "docs/register.md"
+note   = "gate R1 runs register check on this repository's own register"
+
+[[check]]
+clause = "C17"
+kind   = "spec-test"
+ref    = "tests/test_governance.py"
+note   = "Doctor sets a project up with apply and breaks each check in turn"
+
+[[check]]
+clause = "C17"
+kind   = "real-input"
+ref    = "tests/doctor_control.py"
+note   = "gate D1 runs doctor on this repository; its control plants a marker in a full copy and needs doctor to name it"
+
+[[check]]
+clause = "C18"
+kind   = "spec-test"
+ref    = "tests/test_governance.py"
+note   = "Portability and SkillsInstall; hooks/test_check.py drives the adapter"
+
+[[check]]
+clause = "C18"
+kind   = "real-input"
+ref    = "tests/precommit_real.sh"
+note   = "runs the hook through the real pre-commit framework (pre-commit try-repo) in CI"

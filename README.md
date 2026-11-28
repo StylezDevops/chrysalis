@@ -10,6 +10,34 @@ The idea behind it: an agent does not get to mark its own homework. Every rule h
 kind of check between the model and the merge: a number measured before and after, a test that has
 been seen to fail, a hook that refuses a known mistake, a human answer to an ambiguous spec.
 
+## How much it asks
+
+The rigour is scaled to the change, and small changes are cheap on purpose. `PROPORTION.md` grades
+every rule:
+
+| Grade | Rules | What it means |
+|---|---|---|
+| control | 12 | Applies to every change and cannot be switched off: a check must be able to fail, a report is a claim, fail closed, every fault on the record and the rest. |
+| scaled | 6 | Weighted by the change class: specs, tests, audits, ADRs and the gates run. |
+| practice | 3 | Working habits (hooks for repeated mistakes, handovers, one builder at a time). A team may adapt them, with a recorded human decision and a revisit date. |
+
+`chrysalis.py classify` reads a diff and gives it a class, with reasons. It refuses a declared class
+lower than the diff needs:
+
+| Class | Typical change | What it asks for beyond the controls |
+|---|---|---|
+| C0 | a docs edit, a one-line config fix | 4 items: the claim and its check in the commit message, the build and unit tests, a register row and test only if it fixes a defect, one builder |
+| C1 | a feature, a new file | 9 items, among them a minimal spec, a test seen red, 1 audit round and the touched gates |
+| C2 | a critical path, a migration, a dependency, the gates themselves | the same 9, heavier: a full spec, 2 audit rounds, the full gate set |
+
+A fault is never hidden, but it need not block everything. A register row is OPEN (blocks a release),
+CLOSED (fixed, with numbers and a regression test), SCHEDULED (an owner and a due date) or ACCEPTED (a
+named person carries the risk until a revisit date). A deferral marker in code cites its row, as in
+`(R-12)`.
+
+`PROPORTION.md` also says, rule by rule, what enforces it: a hook, a gate, `doctor`, or people. Where
+the answer is people, it says so.
+
 ## Where it came from
 
 The method began at work. The first version was written on a project I build in my job, called "the
@@ -50,13 +78,17 @@ ambiguity in the spec before building, and ties every spec clause to a check.
 | Path | What it is |
 |---|---|
 | `METHOD.md` | The rules. 21 universal (U1 to U21) and 10 conditional (K1 to K10), each with its evidence. |
+| `PROPORTION.md` | Each rule's grade, the change classes, what each class asks for, what enforces each rule, and how a project adapts one. |
 | `docs/discovery.md` | How the rules were found: which projects, which files, what was inferred. |
+| `docs/pilot.md` | How a team pilots the method and measures its overhead before adopting it. |
 | `config/` | `config_project.json` fields and a filled example. |
-| `scripts/chrysalis.py` | The tool: validate, rules, inspect, plan, apply, gates, register check, worktree (new, finish, sweep), check. Standard library only. |
-| `templates/` | What `apply` writes: CLAUDE.md, initial.md, backlog, register, handover, ADR, Definition of Ready and Done, bug classes, names that do not exist, verification, fix, audit and change records, gates.toml and lusser files; plus a change request and runbook for live systems and a threat model where money, personal data or auth are involved. |
-| `skills/` | Claude Code skills: `chrysalis-init` plus 6 more (table below). |
-| `hooks/` | 4 Claude Code PreToolUse hooks and a git pre-commit form of the deferral-marker hook, each with tests. |
-| `.github/workflows/ci.yml` | Every gate that needs no local data, with its control, on Linux and Windows; and the quick start below on an empty project. |
+| `scripts/` | The tool, `chrysalis.py`: validate, rules, inspect, plan, apply, classify, doctor, gates, register check, worktree (new, finish, sweep), skills install, check. One module per command, none over 500 lines. Standard library only. |
+| `templates/` | What `apply` writes: AGENTS.md (with a CLAUDE.md that imports it), a CI workflow, initial.md, backlog, register, handover, ADR, Definition of Ready and Done, bug classes, names that do not exist, verification, fix, audit and change records, a pilot log, gates.toml and lusser files; plus a change request and runbook for live systems and a threat model where money, personal data or auth are involved. |
+| `skills/` | Agent skills: `chrysalis-init` plus 6 more (table below). |
+| `hooks/` | 4 hooks that refuse known mistakes, an adapter (`check.py`) that runs them from any tool, and a git pre-commit form of the deferral-marker hook, each with tests. |
+| `.pre-commit-hooks.yaml` | The deferral-marker hook for the pre-commit framework. |
+| `.github/workflows/ci.yml` | Every gate that needs no local data, with its control, on Linux and Windows; the quick start below on an empty project; the pre-commit hook run for real. |
+| `AGENTS.md`, `config_project.json`, `docs/handover.md` | This repo on its own method: `doctor` checks it (gate D1). |
 | `guardrails/` | The general code-writing guardrails `apply` installs to `~/.claude/` if absent (`--no-home` skips it). |
 | `tests/` | Spec tests per clause, lusser tests, the sabotage sweep and the real-repository validation. |
 | `.lusser/` | This repo's own spec, parts ledger and checks. |
@@ -91,6 +123,19 @@ python3 ~/chrysalis/scripts/chrysalis.py apply /path/to/project
 `validate` turns every gap or contradiction in the config into a numbered question and exits 2. `apply`
 refuses to run until there are none.
 
+After `apply`, two commands carry the method day to day:
+
+```bash
+python3 ~/chrysalis/scripts/chrysalis.py classify --repo /path/to/project   # this change's class and what it asks for
+python3 ~/chrysalis/scripts/chrysalis.py doctor --repo /path/to/project     # is the project still on the method?
+```
+
+`doctor` reads, never writes. It checks the config and any adaptations, the register, every deferral
+marker, the gates, the lusser spec, the rules list in AGENTS.md against the config, and the handover,
+and exits 1 on any failure. On a project `apply` has just set up, only the lusser check fails: the
+first spec is the human's to resolve. `apply` proposes `.github/workflows/chrysalis.yml`, which runs
+both commands on every pull request, pinned to the Chrysalis commit that generated it.
+
 On an existing repository, `apply`:
 
 - creates only files that are absent, using exclusive create;
@@ -117,11 +162,15 @@ My own setup makes some tools mandatory wherever they are available. Every shell
 [rtk](https://github.com/rtk-ai/rtk), which strips noise from command output so an agent spends its
 context on what matters. Code is read and edited through [Serena](https://github.com/oraios/serena),
 which works on symbols through a language server instead of reading whole files. The agent is Claude
-Code, and the hooks in `hooks/` are Claude Code PreToolUse hooks. The deferral-marker rule also comes as a
-plain git pre-commit hook, so it works with any editor or agent.
+Code.
 
 That is simply what I use at the moment. Chrysalis does not depend on any of it: `chrysalis.py` and
-`lusser.py` need only Python and git, and the rules never name a tool. Swap in whatever you prefer: a
+`lusser.py` need only Python and git, and the rules never name a tool. `apply` writes the project's
+instructions to `AGENTS.md`, which most coding agents read; the generated `CLAUDE.md` only imports it.
+The hooks read Claude Code's payload, but `hooks/check.py` runs every one of them from plain arguments
+(`check.py command "<cmd>"`, `check.py file PATH`, `check.py staged`) and answers with an exit code,
+so any agent's hook setting, an editor task or CI can call them. The deferral-marker hook also ships as
+a git pre-commit hook and for the pre-commit framework. Swap in whatever you prefer: a
 different agent, editor, output filter or code index. The in-work project shows it carries over: the
 method started there, in VS Code with AI extensions, before any of these tools were in use.
 
@@ -135,7 +184,7 @@ not.
 ### The method lives in the repository
 
 Everything `apply` writes is a file in the repo, so a team shares it through git, not through one
-person's setup. Every developer, and every agent session they start, reads the same CLAUDE.md, gates,
+person's setup. Every developer, and every agent session they start, reads the same AGENTS.md, gates,
 defect register, ADRs and spec. A new joiner gets the rules by cloning. They do not depend on who set
 the project up or which machine they work on.
 
@@ -152,16 +201,20 @@ the project up or which machine they work on.
 
 ### Rolling it out
 
-1. Pilot on 1 repository with 1 team. Run `plan`, read what it would do, then `apply`. Answer the
-   questions together.
-2. Put `chrysalis.py gates run` into CI, so a gate blocks a merge for everyone, not only for the person
-   who wrote it.
-3. Put the hooks into the project's `.claude/settings.json`, so every developer's agent refuses the same
-   known mistakes.
+1. Pilot on 1 repository with 1 team, following `docs/pilot.md`. Run `plan`, read what it would do,
+   then `apply`. Answer the questions together.
+2. Keep the proposed `.github/workflows/chrysalis.yml` and put `chrysalis.py gates run` into CI, so
+   `doctor`, `classify` and the gates block a merge for everyone, not only for the person who wrote them.
+3. Wire the hooks into each developer's tool: `.claude/settings.json` for Claude Code, `hooks/check.py`
+   for any other agent, the pre-commit framework or a git hook for everyone.
 4. Use the register as the team's shared defect list. A defect closes only with a measured number and a
-   regression test that was red before the fix.
-5. After a few weeks, read the register back. A class of defect that keeps coming up becomes a new gate
-   or rule. The team's rules then grow from the team's own defects, the same way these grew from mine.
+   regression test that was red before the fix. A fault the team decides to fix later is SCHEDULED; a
+   risk it decides to carry is ACCEPTED by a named person. Neither is hidden, and `doctor` fails when
+   its date passes.
+5. Record per change its class, the minutes spent on what the class asked for, and what the checks
+   caught. After a few weeks, read the log and the register back. Adapt what the numbers say is not
+   paying for itself (practices and scaled rules, never controls), and turn a class of defect that keeps
+   coming up into a new gate or rule.
 
 ### As a workshop
 
@@ -171,28 +224,25 @@ their repo and 1 gate they have seen fail.
 
 ### What a team rollout would need to test
 
+- Whether the method's overhead pays for itself: `docs/pilot.md` lists what to record and which
+  question each number answers.
+- Whether the C0 boundary suits the codebase: escapes from C0 changes mean it is too generous.
 - Who resolves an ambiguity when several people can.
 - How long the gates take in CI on a large repository.
-- Whether the hooks suit every developer's setup.
 
 ## Installing the skills and hooks
 
-PowerShell:
-
-```powershell
-New-Item -ItemType Directory -Force $HOME\.claude\skills | Out-Null
-Copy-Item -Recurse $HOME\chrysalis\skills\* $HOME\.claude\skills\
-```
-
-bash:
-
 ```bash
-mkdir -p ~/.claude/skills
-cp -R ~/chrysalis/skills/* ~/.claude/skills/
+python3 ~/chrysalis/scripts/chrysalis.py skills install                    # dry run: what it would do
+python3 ~/chrysalis/scripts/chrysalis.py skills install --apply            # into ~/.claude/skills
+python3 ~/chrysalis/scripts/chrysalis.py skills install --apply --prefix chrysalis- --dest DIR
 ```
 
-The copy overwrites any skill with the same name in `~/.claude/skills`. Hooks are wired by hand; the
-settings snippet is in `hooks/README.md`.
+`skills install` never overwrites. A skill already there with the same content is skipped; one with
+the same name and different content is reported as a conflict, left untouched, and the command exits
+1. `--prefix` installs beside it under a new name, and `--dest` points at another tool's skills folder.
+Hooks are wired by hand; `hooks/README.md` has the settings for Claude Code, other agents, git and
+pre-commit.
 
 Core skills, used by the method:
 
@@ -215,33 +265,37 @@ Other skills I use. They came from the same projects but are domain-specific and
 
 Every check below except the real-repository validation also runs in CI on each push, on Ubuntu and
 Windows with Python 3.11 and 3.13; the badge at the top shows the latest result. The numbers here were
-measured on 2026-11-27, Windows 11, Python 3.14. Each line can be re-run with its command.
+measured on 2026-11-28, Windows 11, Python 3.14. Each line can be re-run with its command.
 
 | Check | Command | Result |
 |---|---|---|
-| Spec tests for every clause | `python tests/run_all.py --only chrysalis` | 64 tests, all pass |
+| Spec tests for clauses C1 to C14 | `python tests/run_all.py --only chrysalis` | 65 tests, all pass |
+| Spec tests for clauses C15 to C18 (proportion, fault states, doctor, portability) | `python tests/run_all.py --only governance` | 38 tests, all pass |
 | lusser tests | `python tests/run_all.py --only lusser` | 18 tests, all pass |
-| Hook tests | `python tests/run_all.py --only hooks` | 28 block and 28 allow cases, 0 wrong |
+| Hook tests | `python tests/run_all.py --only hooks` | 35 block and 36 allow cases, 0 wrong |
 | Evidence: cited files exist and hold their quotes | `python tests/run_all.py --only evidence` | 3 tests, all pass |
-| Each of 15 deliberate defects is caught by a test naming its clause | `python tests/run_all.py --sweep` | 15 of 15 caught |
-| `apply` on copies of 4 real repositories and 1 new project | `python tests/validate_real.py` | 0 files changed or deleted across 5,709; all 5 pass; see `docs/validation.md` |
-| 7 automated gates | `python scripts/chrysalis.py gates run` | 7 pass |
-| Every gate's control goes red | `python scripts/chrysalis.py gates run --controls` | 7 of 7 red |
-| Spec coverage and part budget | `python skills/lusser/scripts/lusser.py check` | OK; 14 clauses covered, 24 of 24 parts |
+| Each of 20 deliberate defects is caught by a test naming its clause | `python tests/run_all.py --sweep` | 20 of 20 caught |
+| `apply` on copies of 4 real repositories and 1 new project | `python tests/validate_real.py` | 0 files changed or deleted across 5,725; all 5 pass; see `docs/validation.md` |
+| 8 automated gates, including D1: this repo passes its own `doctor --release` | `python scripts/chrysalis.py gates run` | 8 pass |
+| Every gate's control goes red | `python scripts/chrysalis.py gates run --controls` | 8 of 8 red |
+| Spec coverage and part budget | `python skills/lusser/scripts/lusser.py check` | OK; 18 clauses covered, 36 of 36 parts |
+| The deferral hook through the real pre-commit framework | `bash tests/precommit_real.sh` | refuses an uncited marker, allows a cited one (CI) |
 
-11 defects have been found in Chrysalis itself and fixed with regression tests: 3 by the
+12 defects have been found in Chrysalis itself and fixed with regression tests: 3 by the
 real-repository run; 2 where a byte-order mark written by PowerShell broke file reading; 2 by running
 the suites in a fresh clone before CI was added (a skipped test reported as a pass, and the validation
 crashing instead of skipping); 3 from an outside code review (worktrees ignoring the configured
 default branch, a pipe inside a table cell shifting the register's columns, and a silent folder-depth
-limit); and 1 found by checking that review's first fix against its siblings (U21): `lusser parts`
-still ignored the configured default branch. They are in `docs/register.md` with their numbers.
+limit); 1 found by checking that review's first fix against its siblings (U21): `lusser parts` still
+ignored the configured default branch; and 1 while acting on a second review: `chrysalis.py` had grown
+to 1,341 lines against the method's own limit of 500, so it is now 14 modules and `check` enforces the
+limit. They are in `docs/register.md` with their numbers.
 
 The real-repository validation and the evidence test read local copies of the source projects. Their
 paths are in a gitignored file, `tests/evidence_roots.local.json`. On another machine, CI included, the
 evidence suite prints "PASS, 2 of 3 skipped" and the validation exits 3 with "SKIPPED"; neither reports
 a plain pass. The last full run is in `docs/validation.md`: 4 real repositories
-and 1 new project, 5,709 files, 0 changed or deleted.
+and 1 new project, 5,725 files, 0 changed or deleted.
 
 ## Licence
 
@@ -249,8 +303,12 @@ MIT. See `LICENSE`.
 
 ## Limits
 
-- `apply` gives a project its files and structure. Whether the project then follows the method is down
-  to the people and agents working in it, and the gates they write.
+- The tools enforce structure and evidence: `doctor`, `classify`, the gates, the hooks and the register
+  check. They cannot tell whether an audit was really independent, a measurement really went through
+  the shipping path, or a person read the diff. `PROPORTION.md` names, rule by rule, which parts rely on
+  people.
+- The rules come from 1 work project and 3 of my own over about a year, most of it built by one
+  developer. They are evidence of what worked there, not proof that they generalise. The
+  real-repository validation shows that setting a project up is safe; it does not show the method pays
+  for itself on someone else's team. `docs/pilot.md` is how a team finds out.
 - The validation copies tracked files only, so assets that exist only as ignored files were not tested.
-- The rules come from 1 work project and 3 of my own over about a year. They are evidence of what
-  worked there, not proof that they generalise.

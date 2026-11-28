@@ -1,0 +1,16 @@
+# Hooks for the pre-commit framework (https://pre-commit.com). In a project's .pre-commit-config.yaml:
+#
+#   repos:
+#     - repo: https://github.com/StylezDevops/chrysalis
+#       rev: <a commit or tag>
+#       hooks:
+#         - id: chrysalis-deferral-markers
+#
+# The hook refuses a commit that adds a deferral marker citing no register row (METHOD U6).
+- id: chrysalis-deferral-markers
+  name: deferral markers cite a register row (METHOD U6)
+  entry: hooks/git_pre_commit.py
+  language: script
+  pass_filenames: false
+  always_run: true
+  stages: [pre-commit]

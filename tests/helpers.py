@@ -4,6 +4,7 @@ import hashlib
 import json
 import os
 import pathlib
+import re
 import subprocess
 import sys
 import tempfile
@@ -79,3 +80,14 @@ def make_git_repo(directory: pathlib.Path, files: dict) -> pathlib.Path:
 
 def tempdir():
     return tempfile.TemporaryDirectory(prefix="chrysalis-test-")
+
+
+# The tests' own copy of the copied-text detector, kept apart from scripts/selfcheck.py so the expected
+# result is not derived from the code under test (U4).
+METHOD_TEXT = (ROOT / "METHOD.md").read_text(encoding="utf-8")
+
+
+def long_sentences(text, min_words=8):
+    body = re.sub(r"`[^`]*`", "", text)
+    parts = re.split(r"(?<=[.!?])\s+|\n", body)
+    return {re.sub(r"\s+", " ", s).strip(" -*|") for s in parts if len(s.split()) >= min_words}

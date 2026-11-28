@@ -36,10 +36,10 @@ jobs:
           git config --global init.defaultBranch main
       - name: gates.toml is well formed
         run: python scripts/chrysalis.py gates validate
-      - name: Gates pass (T1 tests, S0 sabotage sweep, F1 method check, G1, R1 register, L1 lusser)
-        run: python scripts/chrysalis.py gates run --only T1 S0 F1 G1 R1 L1
+      - name: Gates pass (T1 tests, S0 sabotage sweep, F1 method check, G1, R1 register, L1 lusser, D1 own doctor)
+        run: python scripts/chrysalis.py gates run --only T1 S0 F1 G1 R1 L1 D1
       - name: Every control goes red
-        run: python scripts/chrysalis.py gates run --controls --only T1 S0 F1 G1 R1 L1
+        run: python scripts/chrysalis.py gates run --controls --only T1 S0 F1 G1 R1 L1 D1
       - name: Test summary
         if: always()
         run: python tests/run_all.py | tee -a "$GITHUB_STEP_SUMMARY"
@@ -66,6 +66,23 @@ jobs:
           python ../chrysalis/scripts/chrysalis.py apply . --home "$RUNNER_TEMP/home"
           python ../chrysalis/scripts/chrysalis.py gates validate --file gates.toml
           test -z "$(git diff --cached --name-only)" || { echo "apply staged files"; exit 1; }
+      - name: doctor on the new project fails only on the spec a human must resolve
+        run: |
+          cd project
+          set +e
+          python ../chrysalis/scripts/chrysalis.py doctor --repo . > "$RUNNER_TEMP/doctor.txt"
+          code=$?
+          set -e
+          cat "$RUNNER_TEMP/doctor.txt"
+          test "$code" = 1
+          test "$(grep -c '^FAIL  ' "$RUNNER_TEMP/doctor.txt")" = 1
+          grep -q '^FAIL  lusser' "$RUNNER_TEMP/doctor.txt"
+      - name: The deferral hook through the real pre-commit framework
+        run: |
+          python -m pip install --quiet pre-commit==4.7.0
+          git config --global user.name "chrysalis-ci"
+          git config --global user.email "ci@example.invalid"
+          bash chrysalis/tests/precommit_real.sh
       - name: Show what apply wrote
         run: |
           cd project

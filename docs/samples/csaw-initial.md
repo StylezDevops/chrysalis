@@ -1,6 +1,6 @@
 # CSAW: project definition
 
-Generated 2026-11-27 from `config_project.json`. Sections marked TO DO need the project owner or a session of
+Generated 2026-11-28 from `config_project.json`. Sections marked TO DO need the project owner or a session of
 interrogation (see the `chrysalis-init` skill). Everything else came from the config.
 
 ## Purpose
@@ -39,11 +39,11 @@ Universal:
 - U3: A defect becomes structure
 - U4: Tests argue, they do not record
 - U5: Adversarial audit until a round is clean
-- U6: Fix, never defer
+- U6: Every fault is owned and on the record
 - U7: A repeatable mistake gets a hook
 - U8: One source of truth
 - U9: Docs move with code
-- U10: lusser on all work
+- U10: lusser, scaled to the change
 - U11: Decisions carry their reasons
 - U12: Sessions hand over
 - U13: A report is a claim

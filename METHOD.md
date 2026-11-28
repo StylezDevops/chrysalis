@@ -13,6 +13,14 @@ copy there if it is absent. This file does not repeat them.
 
 ---
 
+## Proportion
+
+Every universal rule is graded as a control, a scaled rule or a practice, and every change has a
+class from C0 (small) to C2 (risky). `PROPORTION.md` holds the grades, the classes, what each class
+asks for, what enforces each rule, and how a project adapts a rule. Read it before the rules.
+
+---
+
 ## Universal rules
 
 ### U1. Measure first
@@ -111,17 +119,28 @@ logged with the reason.
 
 Evidence: register-loop skill; Substrate memory never-accept-faults; CHRYSOS .claude/register-loop.md; the in-work project's audit graded "A, critical 0" and contradicted by stubs and injection found 15 days later.
 
-### U6. Fix, never defer
+### U6. Every fault is owned and on the record
 
-A fault seen is a fault owned, pre-existing or not. Faults are not marked "accepted". Only the project
-owner can decide to leave one, and only by saying so.
+A fault seen is a fault owned, pre-existing or not. What is forbidden is a fault nobody can see: a
+deferral marker with no register row, "deliberately not done", a known-failing baseline that is not a
+list of defects. Each fault has a register row in one of four states:
 
-- Deferral markers in code are refused by `hooks/block_deferral_markers.py`. A marker closes with a
-  test of the behaviour, never with a reworded comment.
-- "Deliberately not done" is a deferral. A known-failing baseline is a list of defects.
+| State | Meaning | The row needs |
+|---|---|---|
+| OPEN | Not yet fixed. Blocks a release: `register check --release` fails. | the defect and its measure |
+| CLOSED | Fixed (U3). | before and after numbers, a regression test, a follow-up decision |
+| SCHEDULED | To be fixed later, because it cannot reach a user, data or a gate verdict before then. | `scheduled: OWNER, due YYYY-MM-DD, reason` |
+| ACCEPTED | A known risk left in place on purpose. | `accepted: NAME (human, YYYY-MM-DD), revisit YYYY-MM-DD, reason` |
+
+- Only a human with authority over the project accepts a risk. An agent may propose SCHEDULED or
+  ACCEPTED; it never records the decision itself.
+- A due or revisit date that has passed fails `register check`.
+- A marker in code cites its row, as in `TODO(R-12)`. The deferral hook refuses a marker with no
+  citation, and `doctor` fails a citation whose row is missing or CLOSED. A marker closes with a test
+  of the behaviour, never with a reworded comment.
 - Lowering a severity to get past a check is gaming the check.
 
-Evidence: Substrate memories fix-never-defer and never-accept-faults; CHRYSOS memory a-problem-seen-is-owned; the in-work project's 30 "for now" items, some closed by rewording the comment, and its lint fixed by downgrading errors to warnings.
+Evidence: Substrate memories fix-never-defer and never-accept-faults; CHRYSOS memory a-problem-seen-is-owned; the in-work project's 30 "for now" items, some closed by rewording the comment, and its lint fixed by downgrading errors to warnings. The SCHEDULED and ACCEPTED states came from the outside review of 2026-11-28: the absolute form left no honest way to record a risk a team had decided to carry.
 
 ### U7. A repeatable mistake gets a hook
 
@@ -159,14 +178,15 @@ implementation or is marked planned.
 
 Evidence: Substrate scripts/check-docs-current.mjs; CHRYSOS CLAUDE.md struck-through reversals; the in-work project's guide examples run as tests, against reference examples its own loader rejects and a rollback API documented with three endpoints that do not exist. The 25 KB limit is INFERRED from CHRYSOS CLAUDE.md (56 KB) having outgrown use; the 500-line limit is the in-work project's.
 
-### U10. lusser on all work
+### U10. lusser, scaled to the change
 
-Every piece of work, whatever its size, has a `.lusser/` spec: numbered clauses, ambiguities resolved
-by a human before building, a part budget, and checks that fail differently from an agent. Small work
-uses `templates/lusser/spec-minimal.md` (1 clause, 1 check, budget 1 or 2). `lusser check` must pass
-before work is called done.
+Work of class C1 or C2 has a `.lusser/` spec: numbered clauses, ambiguities resolved by a human before
+building, a part budget, and checks that fail differently from an agent. C1 work may use
+`templates/lusser/spec-minimal.md` (1 clause, 1 check, budget 1 or 2); C2 work has a full spec. A C0
+change needs no spec: its commit message states what it claims and the check that shows it. `lusser
+check` must pass before C1 or C2 work is called done.
 
-Evidence: .lusser/ in CHRYSOS and Substrate. Mandatory regardless of size: decided 2026-11-25.
+Evidence: .lusser/ in CHRYSOS and Substrate. Made mandatory for all work on 2026-11-25; scaled by class on 2026-11-28 after an outside review found it heavier than small work needs.
 
 ### U11. Decisions carry their reasons
 
@@ -310,8 +330,7 @@ payment providers, databases, deployment targets, the actors who can do the same
 role, an agent) and the routes or tools that write the same fact.
 
 - A defect found in one member is checked against every sibling in the same change. It is fixed for
-  each member it can reach, and the commit says why it cannot reach the rest. A finding names its
-  member only once the others have been looked at.
+  each member it can reach, and the commit says why it cannot reach the rest.
 - The test for the behaviour runs once per member, so a member added later fails until it keeps the
   promise.
 - Every audit brief asks whether each finding holds for the siblings (U5). A finding fixed for one
@@ -319,7 +338,7 @@ role, an agent) and the routes or tools that write the same fact.
 - Docs state the promise once, for the whole family, and name any member that differs. They never
   state it for one member and leave the reader to assume it for the rest.
 
-Evidence: decided by the owner on 2026-11-27 and recorded in Substrate's local CLAUDE.md ("One promise, every implementation"), after Substrate R-321, where a guarantee that nothing different is overwritten was built for one storage backend while its siblings went without; chrysalis R-11 the same day, where the base-branch fix (R-8) reached `worktree` but not `lusser parts`.
+Evidence: the owner's decision of 2026-11-27, in Substrate's local CLAUDE.md ("One promise, every implementation"), after Substrate R-321 kept a promise for one storage backend only; chrysalis R-11, where R-8 reached `worktree` but not `lusser parts`.
 
 ---
 

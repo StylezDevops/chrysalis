@@ -1,7 +1,7 @@
 """Run every Chrysalis test, or prove the tests can fail.
 
   python tests/run_all.py                     all suites; exit 1 if any fails
-  python tests/run_all.py --only hooks        one suite: chrysalis, lusser, hooks, evidence
+  python tests/run_all.py --only hooks        one suite: chrysalis, governance, lusser, hooks, evidence
   python tests/run_all.py --sabotage NAME     run with one deliberate defect armed; a healthy suite
                                               exits 1 (this is the control for gate T1)
   python tests/run_all.py --sweep             arm every injection in turn; each must make a test for
@@ -39,6 +39,11 @@ INJECTIONS = {
     "worktree-keep-build-dir": ("chrysalis", "C12"),
     "worktree-sweep-skip-merge-check": ("chrysalis", "C12"),
     "check-ignores-evidence": ("chrysalis", "C1"),
+    "classify-always-c0": ("governance", "C15"),
+    "check-ignores-file-size": ("governance", "C15"),
+    "register-ignores-dates": ("governance", "C16"),
+    "doctor-skips-markers": ("governance", "C17"),
+    "skills-install-overwrites": ("governance", "C18"),
     "hooks-allow-all": ("hooks", "C10"),
     "lusser-no-ambiguity": ("lusser", "L"),
 }
@@ -47,9 +52,9 @@ DUD = {"dud-changes-nothing": ("chrysalis", "C4")}
 HOOK_STUB = "BIN_DIRS = ()\n\ndef offending(command):\n    return None\n\nif __name__ == '__main__':\n    pass\n"
 
 
-def run_unittest(module, env, log):
+def run_unittest(modules, env, log):
     with open(log, "w", encoding="utf-8") as fh:
-        code = subprocess.run([sys.executable, "-m", "unittest", "-v", module], cwd=ROOT, env=env,
+        code = subprocess.run([sys.executable, "-m", "unittest", "-v", *modules.split()], cwd=ROOT, env=env,
                               stdout=fh, stderr=subprocess.STDOUT).returncode
     text = log.read_text(encoding="utf-8")
     failed = set(re.findall(r"^(?:FAIL|ERROR): (test_\w+)", text, re.M))
@@ -79,7 +84,9 @@ def run_suite(name, sabotage=None):
         if sabotage and sabotage not in ("hooks-allow-all", "lusser-no-ambiguity"):
             env["CHRYSALIS_SABOTAGE"] = sabotage
         if name == "chrysalis":
-            return run_unittest("tests.test_chrysalis", env, log)
+            return run_unittest("tests.test_chrysalis tests.test_checks tests.test_worktrees", env, log)
+        if name == "governance":
+            return run_unittest("tests.test_governance", env, log)
         if name == "evidence":
             return run_unittest("tests.test_evidence_real", env, log)
         if name == "lusser":
@@ -108,7 +115,7 @@ def run_suite(name, sabotage=None):
             shutil.rmtree(tmp, ignore_errors=True)
 
 
-SUITES = ["chrysalis", "lusser", "hooks", "evidence"]
+SUITES = ["chrysalis", "governance", "lusser", "hooks", "evidence"]
 
 
 def verdict(code, log_text):

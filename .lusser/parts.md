@@ -29,3 +29,15 @@ executes it and no kind fits it. Tests and fixtures are checks, not parts.
 | 22 | fix R-9: one Markdown row splitter that keeps escaped and code-span pipes in their cell | rework | found by the same review | no |
 | 23 | fix R-10: inspect reports every folder past the depth limit; --max-depth raises it | rework | found by the same review | no |
 | 24 | fix R-11: lusser parts takes its base from --base, then repo.default_branch, then main | rework | found by checking R-8 against its siblings (U21, A18) | no |
+| 25 | scripts/proportion.py: grade table, change classes, adaptations | module | C15; one source for grades, read from PROPORTION.md (A19) | no |
+| 26 | chrysalis.py classify | interface | C15; the class of a diff, its reasons and its obligations; refuses a lowered class (A19, A20) | no |
+| 27 | config keys change.critical_paths, change.small_lines, adapt, markers.exempt | config | C15, C17; each validated at load and tested for its effect (U19) | no |
+| 28 | register states SCHEDULED and ACCEPTED, dated, and --release | rework | C16; a recorded deferral instead of an absolute ban (A19) | no |
+| 29 | deferral hook: a marker citing a register row is allowed | rework | C16; markers on the record, checked by doctor | no |
+| 30 | chrysalis.py doctor | interface | C17; read-only compliance in 1 command (A19) | no |
+| 31 | templates/ci-chrysalis.yml and gate D1 | config | C17; doctor and classify in a project's CI, pinned to a framework commit; this repo passes its own doctor | no |
+| 32 | AGENTS.md template, CLAUDE.md importing it | rework | C18; an agent-neutral contract (A19) | no |
+| 33 | hooks/check.py | module | C18; every hook callable without Claude Code | no |
+| 34 | .pre-commit-hooks.yaml | config | C18; the deferral hook for the pre-commit framework, run for real by tests/precommit_real.sh | no |
+| 35 | chrysalis.py skills install | interface | C18; never overwrites a different skill; --prefix installs beside it | no |
+| 36 | fix R-12: chrysalis.py split into 14 modules by responsibility, spec tests into 3 files, and a line limit in check | rework | found while acting on the 2026-11-28 review (A21) | no |

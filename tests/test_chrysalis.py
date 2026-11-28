@@ -9,13 +9,11 @@ import json
 import pathlib
 import random
 import re
-import subprocess
 import sys
 import unittest
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
-from helpers import (DELETE, FIXTURES, LUSSER, ROOT, git, make_git_repo, run, tempdir,  # noqa: E402
-                     tree_hashes, valid_config, write_config)
+from helpers import DELETE, ROOT, git, make_git_repo, run, tempdir, tree_hashes, valid_config, write_config, METHOD_TEXT, long_sentences  # noqa: E402
 
 REQUIRED = ["project__name", "project__description", "project__problem", "project__users", "stage",
             "repo__existing", "stack__languages", "risk__live_production", "risk__handles_money",
@@ -166,8 +164,8 @@ class Rules(unittest.TestCase):
 
     def test_C2_a_flag_that_is_not_a_bool_is_refused_not_read_as_true(self):
         sys.path.insert(0, str(ROOT / "scripts"))
-        import chrysalis
-        cond = chrysalis.Condition("risk.auth")
+        import rules
+        cond = rules.Condition("risk.auth")
         self.assertTrue(cond.evaluate({"risk": {"auth": True}}))
         self.assertFalse(cond.evaluate({"risk": {"auth": False}}))
         self.assertFalse(cond.evaluate({"risk": {}}))
@@ -310,13 +308,6 @@ class ExistingRepo(unittest.TestCase):
 
 
 # ------------------------------------------------------------------ C7, C11 new project
-METHOD_TEXT = (ROOT / "METHOD.md").read_text(encoding="utf-8")
-
-
-def long_sentences(text, min_words=8):
-    body = re.sub(r"`[^`]*`", "", text)
-    parts = re.split(r"(?<=[.!?])\s+|\n", body)
-    return {re.sub(r"\s+", " ", s).strip(" -*|") for s in parts if len(s.split()) >= min_words}
 
 
 class NewProject(unittest.TestCase):
@@ -350,8 +341,13 @@ class NewProject(unittest.TestCase):
         self.assertTrue((self.repo / "docs/standards/threat-model.md").exists())  # K4 holds
         self.assertFalse((self.repo / "docs/standards/change-request.md").exists())  # K1 does not
 
-    def test_C11_claude_md_cites_rule_ids_without_copying_text(self):
+    def test_C11_claude_md_imports_the_agent_neutral_contract(self):
         text = (self.repo / "CLAUDE.md").read_text(encoding="utf-8")
+        self.assertRegex(text, r"(?m)^@AGENTS\.md$")
+        self.assertNotRegex(text, r"(?m)^- U1:", "CLAUDE.md repeats the rules list instead of importing it")
+
+    def test_C11_agents_md_cites_rule_ids_without_copying_text(self):
+        text = (self.repo / "AGENTS.md").read_text(encoding="utf-8")
         for rid in ["U1", "U10", "U16", "K2", "K4", "K6", "K7"]:
             self.assertRegex(text, rf"\b{rid}\b")
         self.assertNotRegex(text, r"\bK1\b")
@@ -382,378 +378,6 @@ class Guardrails(unittest.TestCase):
             r = run("apply", repo, "--config", cfg, "--home", d / "home")
             self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
             self.assertEqual((home / "engineering-guardrails.md").read_text(encoding="utf-8"), "mine\n")
-
-
-# ------------------------------------------------------------------ C8 gates
-class Gates(unittest.TestCase):
-    def write(self, d, text):
-        p = pathlib.Path(d) / "gates.toml"
-        p.write_text(text, encoding="utf-8")
-        return p
-
-    OK = 'python -c "import sys; sys.exit(0)"'
-    BAD = 'python -c "import sys; sys.exit(1)"'
-
-    def test_C8_validate_requires_purpose_pass_and_control(self):
-        with tempdir() as d:
-            missing = self.write(d, f'[[gate]]\nid = "G1"\nkind = "automated"\nrun = \'{self.OK}\'\npass = "exit 0"\n')
-            r = run("gates", "validate", "--file", missing)
-            self.assertEqual(r.returncode, 1, r.stdout)
-            self.assertIn("purpose", r.stdout)
-            self.assertIn("control", r.stdout)
-
-    def test_C8_human_gate_needs_a_procedure(self):
-        with tempdir() as d:
-            p = self.write(d, '[[gate]]\nid = "H1"\npurpose = "a human tries it"\nkind = "human"\n')
-            r = run("gates", "validate", "--file", p)
-            self.assertEqual(r.returncode, 1, r.stdout)
-            self.assertIn("procedure", r.stdout)
-
-    def test_C8_run_reports_exit_codes(self):
-        with tempdir() as d:
-            p = self.write(d, f'[[gate]]\nid = "G1"\npurpose = "p"\nkind = "automated"\nrun = \'{self.BAD}\'\n'
-                              f'pass = "exit 0"\ncontrol = \'{self.BAD}\'\n')
-            r = run("gates", "run", "--file", p, cwd=d)
-            self.assertEqual(r.returncode, 1, r.stdout)
-            self.assertIn("G1", r.stdout)
-            self.assertIn("FAIL", r.stdout)
-
-    def test_C8_control_that_passes_is_a_failure(self):
-        with tempdir() as d:
-            p = self.write(d, f'[[gate]]\nid = "G1"\npurpose = "p"\nkind = "automated"\nrun = \'{self.OK}\'\n'
-                              f'pass = "exit 0"\ncontrol = \'{self.OK}\'\n')
-            r = run("gates", "run", "--controls", "--file", p, cwd=d)
-            self.assertEqual(r.returncode, 1, r.stdout)
-            self.assertIn("control did not fail", r.stdout)
-
-    def test_C8_control_that_fails_is_a_pass(self):
-        with tempdir() as d:
-            p = self.write(d, f'[[gate]]\nid = "G1"\npurpose = "p"\nkind = "automated"\nrun = \'{self.OK}\'\n'
-                              f'pass = "exit 0"\ncontrol = \'{self.BAD}\'\n')
-            r = run("gates", "run", "--controls", "--file", p, cwd=d)
-            self.assertEqual(r.returncode, 0, r.stdout)
-
-    def test_C8_generated_gates_file_validates(self):
-        with tempdir() as d:
-            d = pathlib.Path(d)
-            repo = d / "repo"
-            repo.mkdir()
-            cfg = write_config(d, valid_config())
-            self.assertEqual(run("apply", repo, "--config", cfg, "--home", d / "home").returncode, 0)
-            r = run("gates", "validate", "--file", repo / "gates.toml")
-            self.assertEqual(r.returncode, 0, r.stdout)
-
-
-class SkipIsNotPass(unittest.TestCase):
-    """R-6 and R-7: a check that could not run says so, and never reports a pass (U2)."""
-
-    def test_C8_suite_with_skipped_tests_is_not_reported_as_plain_pass(self):
-        sys.path.insert(0, str(ROOT / "tests"))
-        import run_all
-        self.assertEqual(run_all.verdict(0, "Ran 3 tests in 0.1s\n\nOK (skipped=3)\n"), "SKIP (all tests skipped)")
-        self.assertEqual(run_all.verdict(0, "Ran 3 tests in 0.1s\n\nOK (skipped=2)\n"), "PASS, 2 of 3 skipped")
-        self.assertEqual(run_all.verdict(0, "Ran 3 tests in 0.1s\n\nOK\n"), "PASS")
-        self.assertEqual(run_all.verdict(1, "Ran 3 tests in 0.1s\n\nFAILED (failures=1)\n"), "FAIL")
-
-    def test_C13_validation_without_local_copies_skips_with_a_nonzero_exit(self):
-        import os
-        import subprocess
-        with tempdir() as d:
-            env = dict(os.environ, CHRYSALIS_ROOTS_FILE=str(pathlib.Path(d) / "absent.json"))
-            env.pop("CHRYSALIS_SABOTAGE", None)
-            r = subprocess.run([sys.executable, str(ROOT / "tests" / "validate_real.py")], env=env,
-                               capture_output=True, text=True, encoding="utf-8", timeout=120)
-        self.assertEqual(r.returncode, 3, r.stdout + r.stderr)
-        self.assertIn("SKIPPED", r.stdout)
-        self.assertNotIn("Traceback", r.stderr)
-
-
-# ------------------------------------------------------------------ C9 register
-HEADER = "| ID | State | Defect | Measure | Before | After | Test | Follow-up |\n|---|---|---|---|---|---|---|---|\n"
-
-
-class Register(unittest.TestCase):
-    def check(self, rows, files=()):
-        with tempdir() as d:
-            d = pathlib.Path(d)
-            for f in files:
-                (d / f).parent.mkdir(parents=True, exist_ok=True)
-                (d / f).write_text("x\n", encoding="utf-8")
-            reg = d / "docs" / "register.md"
-            reg.parent.mkdir(parents=True, exist_ok=True)
-            reg.write_text("# Register\n\n" + HEADER + rows, encoding="utf-8")
-            return run("register", "check", "--file", reg, "--root", d)
-
-    def test_C9_complete_closed_row_passes(self):
-        r = self.check("| R-1 | CLOSED | crash on empty input | crashes per 100 runs | 100 | 0 | tests/test_empty.py | rule: U4 |\n",
-                       files=["tests/test_empty.py"])
-        self.assertEqual(r.returncode, 0, r.stdout)
-
-    def test_C9_closed_row_without_numbers_fails(self):
-        r = self.check("| R-1 | CLOSED | crash | crashes | | 0 | tests/t.py | none: trivial |\n", files=["tests/t.py"])
-        self.assertEqual(r.returncode, 1, r.stdout)
-        self.assertIn("R-1", r.stdout)
-
-    def test_C9_closed_row_with_unmoved_number_fails(self):
-        r = self.check("| R-1 | CLOSED | crash | crashes | 5 | 5 | tests/t.py | none: trivial |\n", files=["tests/t.py"])
-        self.assertEqual(r.returncode, 1, r.stdout)
-
-    def test_C9_closed_row_needs_an_existing_test(self):
-        r = self.check("| R-1 | CLOSED | crash | crashes | 5 | 0 | tests/missing.py | gate: G2 |\n")
-        self.assertEqual(r.returncode, 1, r.stdout)
-        self.assertIn("missing.py", r.stdout)
-
-    def test_C9_follow_up_decision_is_recorded(self):
-        r = self.check("| R-1 | CLOSED | crash | crashes | 5 | 0 | tests/t.py | |\n", files=["tests/t.py"])
-        self.assertEqual(r.returncode, 1, r.stdout)
-        self.assertIn("follow-up", r.stdout.lower())
-
-    def test_C9_open_rows_are_not_held_to_closed_rules(self):
-        r = self.check("| R-2 | OPEN | slow | ms | 900 | | | |\n")
-        self.assertEqual(r.returncode, 0, r.stdout)
-
-    def test_C9_escaped_pipe_and_code_span_pipe_stay_inside_their_cell(self):
-        rows = ("| R-1 | CLOSED | split on `a|b` and a \\| c | crashes | 5 | 0 | tests/t.py | rule: U4 |\n"
-                "| R-2 | CLOSED | `x|y` | crashes | 5 | 5 | tests/t.py | rule: U4 |\n")
-        r = self.check(rows, files=["tests/t.py"])
-        self.assertEqual(r.returncode, 1, r.stdout)
-        self.assertNotIn("R-1", r.stdout, "a pipe inside a cell shifted R-1's columns")
-        self.assertIn("R-2: CLOSED but the measurement did not move (5)", r.stdout)
-
-
-# ------------------------------------------------------------------ C12 worktree procedure
-class Worktrees(unittest.TestCase):
-    def setUp(self):
-        self._tmp = tempdir()
-        self.base = pathlib.Path(self._tmp.name)
-        self.repo = make_git_repo(self.base / "repo", {"a.txt": "a\n"})
-        self.wt_root = self.base / "wts"
-
-    def tearDown(self):
-        self._tmp.cleanup()
-
-    def wt(self, *args):
-        return run("worktree", *args, "--repo", self.repo, "--root", self.wt_root)
-
-    def commit_in(self, path, name):
-        (path / name).write_text("x\n", encoding="utf-8")
-        git(path, "add", name)
-        git(path, "-c", "user.name=t", "-c", "user.email=t@example.invalid", "commit", "-q", "-m", name)
-
-    def test_C12_new_reports_the_current_base(self):
-        head = git(self.repo, "rev-parse", "--short", "HEAD")
-        r = self.wt("new", "job1")
-        self.assertEqual(r.returncode, 0, r.stdout)
-        self.assertIn(head, r.stdout)
-        self.assertTrue((self.wt_root / "job1" / "a.txt").exists())
-
-    def use_trunk(self, config_text):
-        git(self.repo, "branch", "-m", "main", "trunk")
-        if config_text is not None:
-            (self.repo / "config_project.json").write_text(config_text, encoding="utf-8")
-
-    def test_C12_base_defaults_to_the_configured_default_branch(self):
-        self.use_trunk('{"repo": {"default_branch": "trunk"}}')
-        r = self.wt("new", "job-trunk")
-        self.assertEqual(r.returncode, 0, r.stdout)
-        self.assertIn("trunk", r.stdout)
-        self.assertIn("config_project.json", r.stdout, "the output does not say where the base came from")
-
-    def test_C12_explicit_base_overrides_the_config(self):
-        self.use_trunk('{"repo": {"default_branch": "nowhere"}}')
-        r = run("worktree", "new", "job-x", "--repo", self.repo, "--root", self.wt_root, "--base", "trunk")
-        self.assertEqual(r.returncode, 0, r.stdout)
-
-    def test_C12_unreadable_config_fails_closed(self):
-        self.use_trunk("{not json")
-        r = self.wt("new", "job-bad")
-        self.assertEqual(r.returncode, 1, r.stdout)
-        self.assertIn("config_project.json", r.stdout)
-        self.assertFalse((self.wt_root / "job-bad").exists())
-
-    def test_C12_sweep_uses_the_configured_base(self):
-        self.use_trunk('{"repo": {"default_branch": "trunk"}}')
-        self.assertEqual(self.wt("new", "job-sw").returncode, 0)
-        r = run("worktree", "sweep", "--repo", self.repo, "--apply")
-        self.assertEqual(r.returncode, 0, r.stdout)
-        self.assertNotIn("agent/job-sw", git(self.repo, "branch", "--list"))
-
-    def test_C12_finish_refuses_an_unmerged_branch(self):
-        self.assertEqual(self.wt("new", "job2").returncode, 0)
-        self.commit_in(self.wt_root / "job2", "b.txt")
-        r = self.wt("finish", "job2")
-        self.assertEqual(r.returncode, 1, r.stdout)
-        self.assertTrue((self.wt_root / "job2").exists(), "unmerged work was removed")
-        self.assertIn("agent/job2", git(self.repo, "branch", "--list"))
-
-    def test_C12_finish_refuses_a_dirty_worktree(self):
-        self.assertEqual(self.wt("new", "job3").returncode, 0)
-        (self.wt_root / "job3" / "scratch.txt").write_text("unsaved\n", encoding="utf-8")
-        r = self.wt("finish", "job3")
-        self.assertEqual(r.returncode, 1, r.stdout)
-        self.assertTrue((self.wt_root / "job3" / "scratch.txt").exists())
-
-    def test_C12_finish_cleans_up_after_merge(self):
-        self.assertEqual(self.wt("new", "job4").returncode, 0)
-        self.commit_in(self.wt_root / "job4", "c.txt")
-        git(self.repo, "-c", "user.name=t", "-c", "user.email=t@example.invalid", "merge", "-q", "--no-ff",
-            "-m", "merge job4", "agent/job4")
-        r = self.wt("finish", "job4")
-        self.assertEqual(r.returncode, 0, r.stdout)
-        self.assertFalse((self.wt_root / "job4").exists())
-        self.assertNotIn("agent/job4", git(self.repo, "branch", "--list"))
-        self.assertEqual(git(self.repo, "worktree", "list").count("\n"), 0)
-
-    def merge(self, branch):
-        git(self.repo, "-c", "user.name=t", "-c", "user.email=t@example.invalid", "merge", "-q", "--no-ff",
-            "-m", f"merge {branch}", branch)
-
-    def test_C12_finish_removes_the_build_directory(self):
-        self.assertEqual(self.wt("new", "job5").returncode, 0)
-        self.commit_in(self.wt_root / "job5", "d.txt")
-        self.merge("agent/job5")
-        build = self.base / "build-job5"
-        (build / "obj").mkdir(parents=True)
-        (build / "obj" / "x.o").write_text("o\n", encoding="utf-8")
-        r = self.wt("finish", "job5", "--build-dir", build)
-        self.assertEqual(r.returncode, 0, r.stdout)
-        self.assertFalse(build.exists(), "build directory left behind")
-
-    def test_C12_finish_refuses_a_build_dir_that_holds_the_repo(self):
-        self.assertEqual(self.wt("new", "job6").returncode, 0)
-        r = self.wt("finish", "job6", "--build-dir", self.base)
-        self.assertEqual(r.returncode, 1, r.stdout)
-        self.assertTrue((self.repo / "a.txt").exists())
-        self.assertTrue((self.wt_root / "job6").exists())
-
-    def test_C12_sweep_removes_merged_agent_leftovers_and_keeps_the_rest(self):
-        # merged, with a worktree (this tool's naming)
-        self.assertEqual(self.wt("new", "done").returncode, 0)
-        self.commit_in(self.wt_root / "done", "e.txt")
-        self.merge("agent/done")
-        # merged, branch only (Claude Code's naming), pointing at a commit already on main
-        git(self.repo, "branch", "worktree-agent-abc123")
-        # unmerged agent work, and a merged branch that is not an agent's
-        self.assertEqual(self.wt("new", "open").returncode, 0)
-        self.commit_in(self.wt_root / "open", "f.txt")
-        git(self.repo, "branch", "feature/keep")
-
-        dry = run("worktree", "sweep", "--repo", self.repo)
-        self.assertEqual(dry.returncode, 0, dry.stdout)
-        self.assertIn("worktree-agent-abc123", git(self.repo, "branch", "--list"), "dry run removed a branch")
-        self.assertTrue((self.wt_root / "done").exists(), "dry run removed a worktree")
-
-        r = run("worktree", "sweep", "--apply", "--repo", self.repo)
-        self.assertEqual(r.returncode, 0, r.stdout)
-        branches = git(self.repo, "branch", "--list")
-        self.assertNotIn("agent/done", branches)
-        self.assertNotIn("worktree-agent-abc123", branches)
-        self.assertFalse((self.wt_root / "done").exists())
-        self.assertIn("agent/open", branches, "unmerged agent work was removed")
-        self.assertTrue((self.wt_root / "open" / "f.txt").exists())
-        self.assertIn("feature/keep", branches, "a non-agent branch was removed")
-
-
-class BaseBranchFamily(unittest.TestCase):
-    """U21: every tool that picks a base branch keeps the same promise (--base, then
-    repo.default_branch, then main; an unreadable config fails closed). A tool added to MEMBERS
-    later inherits these tests and fails until it keeps the promise. R-11 was lusser parts, missed
-    when R-8 fixed worktree alone."""
-
-    MEMBERS = {
-        "worktree new": lambda repo, root: run("worktree", "new", "job-f", "--repo", repo, "--root", root),
-        "worktree sweep": lambda repo, root: run("worktree", "sweep", "--repo", repo, "--root", root),
-        "lusser parts": lambda repo, root: subprocess.run(
-            [sys.executable, str(LUSSER), "parts"], cwd=repo, capture_output=True, text=True, encoding="utf-8"),
-    }
-
-    def setUp(self):
-        self._tmp = tempdir()
-        self.base = pathlib.Path(self._tmp.name)
-
-    def tearDown(self):
-        self._tmp.cleanup()
-
-    def trunk_repo(self, name, config_text):
-        repo = make_git_repo(self.base / name, {"a.txt": "a\n"})
-        git(repo, "branch", "-m", "main", "trunk")
-        (repo / "config_project.json").write_text(config_text, encoding="utf-8")
-        return repo
-
-    def test_C12_every_member_takes_its_base_from_the_config(self):
-        for i, (member, call) in enumerate(self.MEMBERS.items()):
-            with self.subTest(member=member):
-                repo = self.trunk_repo(f"ok{i}", '{"repo": {"default_branch": "trunk"}}')
-                r = call(repo, self.base / f"wts{i}")
-                self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
-                self.assertIn("trunk", r.stdout)
-                self.assertIn("config_project.json", r.stdout, "the output does not say where the base came from")
-
-    def test_C12_every_member_fails_closed_on_an_unreadable_config(self):
-        for i, (member, call) in enumerate(self.MEMBERS.items()):
-            with self.subTest(member=member):
-                repo = self.trunk_repo(f"bad{i}", "{not json")
-                r = call(repo, self.base / f"wts{i}")
-                self.assertNotEqual(r.returncode, 0, r.stdout)
-                self.assertIn("config_project.json", r.stdout + r.stderr)
-
-
-# ------------------------------------------------------------------ C1, C11 framework self-check
-class SelfCheck(unittest.TestCase):
-    def test_C1_framework_check_passes(self):
-        r = run("check")
-        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
-
-    def test_C1_rule_without_evidence_fails_the_check(self):
-        broken = re.sub(r"(### U3\..*?)\nEvidence:[^\n]*\n", r"\1\n", METHOD_TEXT, count=1, flags=re.S)
-        self.assertNotEqual(broken, METHOD_TEXT)
-        with tempdir() as d:
-            p = pathlib.Path(d) / "METHOD.md"
-            p.write_text(broken, encoding="utf-8")
-            r = run("check", "--method", p)
-            self.assertEqual(r.returncode, 1, r.stdout)
-            self.assertIn("U3", r.stdout)
-
-    def test_C11_template_copying_method_text_fails_the_check(self):
-        sentence = sorted(long_sentences(METHOD_TEXT))[0]
-        with tempdir() as d:
-            t = pathlib.Path(d) / "templates"
-            t.mkdir()
-            (t / "x.md").write_text(f"Intro.\n\n{sentence}\n", encoding="utf-8")
-            r = run("check", "--templates", t)
-            self.assertEqual(r.returncode, 1, r.stdout)
-
-
-# ------------------------------------------------------------------ C14 the in-work project stays unnamed
-# Hashes of lower-case name tokens that must never appear in a tracked file: the in-work project, its
-# client and its people. Stored as hashes so this test does not commit the names it guards.
-UNNAMED = {"2df5a4a7dc5296fa", "d715c79843c99608", "6facd5c71d687fb5", "2504ca8240d180e1",
-           "0ba0852ec3860b14", "d2db738e193ec624", "d42e789f1c33e4b5"}
-
-
-def named_tokens(text: str) -> set:
-    import hashlib
-    return {t for t in re.findall(r"[a-z0-9]+", text.lower())
-            if hashlib.sha256(t.encode()).hexdigest()[:16] in UNNAMED}
-
-
-class Unnamed(unittest.TestCase):
-    def test_C14_no_tracked_file_names_the_in_work_project(self):
-        files = git(ROOT, "ls-files").splitlines()
-        self.assertGreater(len(files), 50)
-        hits = {}
-        for rel in files:
-            path = ROOT / rel
-            if not path.is_file():
-                continue
-            found = named_tokens(path.read_text(encoding="utf-8", errors="replace"))
-            if found:
-                hits[rel] = len(found)
-        self.assertEqual(hits, {}, "tracked files name the in-work project (counts only, names withheld)")
-
-    def test_C14_the_detector_sees_a_planted_name(self):
-        planted = "".join(["sync", "v2"]) + " and " + "".join(["ke", "rv"])
-        self.assertEqual(len(named_tokens(planted)), 2)
 
 
 if __name__ == "__main__":

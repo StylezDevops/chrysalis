@@ -133,14 +133,14 @@ def validate_new(work, env):
     after = hashes(dest)
     method = (ROOT / "METHOD.md").read_text(encoding="utf-8")
     sys.path.insert(0, str(ROOT / "scripts"))
-    import chrysalis  # noqa: E402
-    claude = (dest / "CLAUDE.md").read_text(encoding="utf-8") if (dest / "CLAUDE.md").exists() else ""
-    copied = sorted(chrysalis.long_sentences(method) & chrysalis.long_sentences(claude))
+    import selfcheck  # noqa: E402
+    contract = (dest / "AGENTS.md").read_text(encoding="utf-8") if (dest / "AGENTS.md").exists() else ""
+    copied = sorted(selfcheck.long_sentences(method) & selfcheck.long_sentences(contract))
     g_code, g_out = sh([sys.executable, str(SCRIPT), "gates", "validate", "--file", str(dest / "gates.toml")])
     # Kept for the human acceptance check (gate A1): what init writes for a real new project.
     samples = ROOT / "docs" / "samples"
     samples.mkdir(parents=True, exist_ok=True)
-    for name in ("initial.md", "CLAUDE.md"):
+    for name in ("initial.md", "AGENTS.md", "CLAUDE.md"):
         if (dest / name).exists():
             text = (dest / name).read_text(encoding="utf-8").replace(str(ROOT), "<chrysalis>")
             (samples / f"csaw-{name}").write_text(text, encoding="utf-8", newline="\n")
@@ -148,8 +148,8 @@ def validate_new(work, env):
         "target": "CSAW new project", "apply_exit": code,
         "inputs_unchanged": all(after.get(p) == h for p, h in before.items()),
         "required_present": {f: (dest / f).is_file() for f in
-                             ("initial.md", "docs/backlog.md", "gates.toml", "CLAUDE.md")},
-        "claude_rule_ids": sorted(set(re.findall(r"\b([UK]\d+)\b", claude)), key=lambda s: (s[0], int(s[1:]))),
+                             ("initial.md", "docs/backlog.md", "gates.toml", "AGENTS.md", "CLAUDE.md")},
+        "contract_rule_ids": sorted(set(re.findall(r"\b([UK]\d+)\b", contract)), key=lambda s: (s[0], int(s[1:]))),
         "copied_sentences": copied,
         "gates_validate_exit": g_code,
         "created": len(after) - len(before),
@@ -163,7 +163,7 @@ def ok_existing(r):
 
 def ok_new(r):
     return (r["apply_exit"] == 0 and r["inputs_unchanged"] and all(r["required_present"].values())
-            and not r["copied_sentences"] and r["gates_validate_exit"] == 0 and r["claude_rule_ids"])
+            and not r["copied_sentences"] and r["gates_validate_exit"] == 0 and r["contract_rule_ids"])
 
 
 def write_report(results, new, when):
@@ -202,8 +202,8 @@ def write_report(results, new, when):
               f"| brief and reference unchanged | {new['inputs_unchanged']} |"]
     for f, present in new["required_present"].items():
         lines.append(f"| {f} created | {present} |")
-    lines += [f"| rule IDs cited in CLAUDE.md | {', '.join(new['claude_rule_ids'])} |",
-              f"| METHOD sentences copied into CLAUDE.md | {len(new['copied_sentences'])} |",
+    lines += [f"| rule IDs cited in AGENTS.md | {', '.join(new['contract_rule_ids'])} |",
+              f"| METHOD sentences copied into AGENTS.md | {len(new['copied_sentences'])} |",
               f"| generated gates.toml validates (exit) | {new['gates_validate_exit']} |",
               f"| files created | {new['created']} |",
               f"| verdict | {'PASS' if ok_new(new) else 'FAIL'} |", ""]

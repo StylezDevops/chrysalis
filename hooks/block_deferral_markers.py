@@ -11,7 +11,9 @@ WHAT IT REFUSES. A Write, Edit, MultiEdit or Serena edit to a source file that l
 markers than it found. The markers are TODO, FIXME, HACK and XXX as words, and the phrases "for now",
 "temporary fix", "temporary workaround", "quick fix", "quick hack" and "workaround", in any case.
 Source files are recognised by extension (see SOURCE). Markers already in the replaced text are not
-counted against the edit, so touching a line near an old marker is allowed.
+counted against the edit, so touching a line near an old marker is allowed. A marker whose line cites
+a register row ID in brackets, such as (R-12), is a deferral on the record and is allowed;
+`chrysalis.py doctor` then fails if that row is missing or already CLOSED.
 
 WHAT IT DOES NOT CATCH: a deferral written in other words ("will be replaced", "until X lands"), a
 marker in a file type not listed, and code written by a shell command rather than an edit tool.
@@ -28,6 +30,8 @@ WORDS = ["TO" + "DO", "FIX" + "ME", "HA" + "CK", "X" + "XX"]
 PHRASES = ["for " + "now", "temporary " + "fix", "temporary " + "workaround", "quick " + "fix",
            "quick " + "hack", "work" + "around"]
 MARKER = re.compile(r"\b(?:" + "|".join(WORDS) + r")\b|(?i:\b(?:" + "|".join(PHRASES) + r")\b)")
+# A register row ID in brackets on the marker's line: (R-12), (BUG-7), (ISSUE-301).
+CITE = re.compile(r"\(\s*([A-Z][A-Z0-9]*-\d+)\s*\)")
 
 SOURCE = {".py", ".js", ".mjs", ".cjs", ".ts", ".tsx", ".jsx", ".svelte", ".vue", ".cs", ".java", ".kt",
           ".go", ".rs", ".c", ".cc", ".cpp", ".h", ".hpp", ".swift", ".rb", ".php", ".sql", ".sh",
@@ -42,13 +46,23 @@ while doing nothing, and some were closed by rewording the comment rather than w
 What to do instead:
 - Write the real implementation now.
 - If it cannot be written yet, make the placeholder throw, so a caller cannot mistake it for working
-  code (U20), and put the open item in the register or the handover, not in a comment.
-- If the owner has decided to leave it, record that decision where the owner can see it."""
+  code (U20), open a register row for it, and cite the row on the marker's line: {marker}(R-12).
+- If it is to be fixed later or left on purpose, the row says so (SCHEDULED or ACCEPTED, U6), and
+  only a human records that decision."""
 
 
 def count(text: str) -> tuple[int, str | None]:
-    found = MARKER.findall(text or "")
+    """Markers that cite no register row, and the first of them. A marker whose line also carries a
+    row ID in brackets, such as (R-12), is on the record and is not counted (U6)."""
+    found = [m for line in (text or "").splitlines() if not CITE.search(line)
+             for m in MARKER.findall(line)]
     return len(found), (found[0] if found else None)
+
+
+def citations(text: str) -> list[tuple[int, str]]:
+    """(line number, row ID) for every marker that cites a row; doctor checks each ID is live."""
+    return [(n, cid) for n, line in enumerate((text or "").splitlines(), 1) if MARKER.search(line)
+            for cid in CITE.findall(line)]
 
 
 def offending(payload: dict) -> str | None:

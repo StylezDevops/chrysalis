@@ -4,7 +4,7 @@ Context: the method already exists across my projects, including MIDAS, Substrat
 CHRYSOS (see docs/discovery.md). This repo extracts it into 1 canonical, configurable source
 that can be cloned into a new project or laid over an existing one without damaging it.
 
-Budget: 24 parts
+Budget: 36 parts
 Assumed p: 0.95
 
 ## Clauses
@@ -23,6 +23,10 @@ Assumed p: 0.95
 - C12. The worktree procedure covers creation from the current base, isolated build directories, ports and databases, and cleanup after merge: one worktree with its branch and build directory, and a sweep of every merged agent branch and worktree left behind. It also states when not to use worktrees.
 - C13. The framework is validated against copies of 2 substantially different existing repositories and 1 new project. For each existing repo, every pre-existing file's hash is identical before and after init.
 - C14. Rules, templates and hooks drawn from the in-work project cite it only as "the in-work project". No tracked file names it, its client or its people, and a test proves it.
+- C15. Every universal rule is graded once in PROPORTION.md as a control, a scaled rule or a practice, with what it asks of a C0, C1 and C2 change and what enforces it. `classify` reads a diff, works out the lowest class the change may take with its reasons, prints that class's obligations from the table, and refuses a declared class below it. A C0 change carries fewer obligations than a C1, and a C1 fewer than a C2. A project may adapt a practice or a scaled rule only with a human decision, a reason and a revisit date; a control cannot be adapted.
+- C16. A register row is OPEN, CLOSED, SCHEDULED or ACCEPTED, and nothing else. SCHEDULED needs an owner, a due date and a reason; ACCEPTED needs a human decision with its date, a revisit date and a reason. A past due or revisit date fails the check, and `--release` fails on any OPEN row. A deferral marker in code is refused unless it cites a register row, and a cited row that is missing or CLOSED fails `doctor`.
+- C17. `doctor` checks a project's compliance in 1 read-only command (config and adaptations, register, markers, gates, lusser, agent contract against the rules in force, handover) and exits 1 on any failure. apply proposes a CI workflow that runs it. METHOD.md says, rule by rule, what is enforced by a machine and what relies on people.
+- C18. Nothing in the method needs Claude Code. apply writes AGENTS.md as the agent-neutral contract and a CLAUDE.md that imports it; every hook can be called without Claude Code through 1 adapter, and the deferral hook ships for the pre-commit framework. `skills install` never overwrites an existing skill. A pilot guide says how a team measures the method's overhead and adapts it.
 
 ## Ambiguities
 
@@ -62,3 +66,9 @@ Assumed p: 0.95
       Resolution: Approved; budget 23. (human, 2026-11-27)
 - A18. Q: U21 (one promise, every member) applied to R-8 found R-11: `lusser parts` still defaults to main and ignores repo.default_branch. The fix is a rework part; raise the budget from 23 to 24?
       Resolution: Approved; budget 24. (human, 2026-11-27)
+- A19. Q: An outside review (2026-11-28) found the method heavier than small work needs, its deferral rule too absolute, its enforcement narrower than its rules, and its tooling tied to Claude Code. Plan: grade every rule (control, scaled, practice) with change classes C0 to C2 and a `classify` command; register states SCHEDULED and ACCEPTED, with markers that cite a row; a `doctor` compliance check with a CI template and an enforcement map; AGENTS.md, a hook adapter, a pre-commit hook, `skills install` and a pilot guide. That is 10 parts; raise the budget from 24 to 34?
+      Resolution: Approved; budget 34; commit and push once every suite and CI pass. (human, 2026-11-28) Raised to 35 when the config keys were counted as their own part. (human, 2026-11-28)
+- A20. Q: U10 says lusser applies to all work regardless of size (decided 2026-11-25). Scale it by class: C0 needs no spec, only the claim and its check in the commit; C1 a minimal spec; C2 a full spec?
+      Resolution: Scale U10 by class as proposed. (human, 2026-11-28)
+- A21. Q: scripts/chrysalis.py reached 1,341 lines against U9's limit of about 500 (R-12). Fix it now by splitting it, and the test file it led to, by responsibility?
+      Resolution: "Refactor that and split it up properly and logically." Budget 36 for the split as one rework part. (human, 2026-11-28)

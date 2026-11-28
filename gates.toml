@@ -21,7 +21,7 @@ control = 'python tests/run_all.py --sweep --include-dud --only chrysalis'
 
 [[gate]]
 id = "F1"
-purpose = "METHOD.md rules carry evidence, conditions parse, templates copy no rule text."
+purpose = "METHOD.md rules carry evidence and a grade in PROPORTION.md, conditions parse, both files stay under the size limit, templates copy no rule text."
 kind = "automated"
 run = 'python scripts/chrysalis.py check'
 pass = "exit 0"
@@ -52,6 +52,14 @@ pass = "exit 0"
 control = 'python tests/lusser_control.py'
 
 [[gate]]
+id = "D1"
+purpose = "Chrysalis passes its own doctor: config, register, markers, gates, lusser, agent contract, handover."
+kind = "automated"
+run = 'python scripts/chrysalis.py doctor --repo . --release'
+pass = "exit 0"
+control = 'python tests/doctor_control.py'
+
+[[gate]]
 id = "V1"
 purpose = "apply changes no pre-existing file in copies of real repositories and builds a new project."
 kind = "automated"
@@ -64,4 +72,4 @@ timeout = 3600
 id = "A1"
 purpose = "The project owner accepts what init generates for a real new project."
 kind = "human"
-procedure = "They read docs/samples/csaw-initial.md and docs/samples/csaw-CLAUDE.md and records acceptance, with the date, in .lusser/checks.toml as a human-accept check."
+procedure = "They read docs/samples/csaw-initial.md, docs/samples/csaw-AGENTS.md and docs/samples/csaw-CLAUDE.md and record acceptance, with the date, in .lusser/checks.toml as a human-accept check."
