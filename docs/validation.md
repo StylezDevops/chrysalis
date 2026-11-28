@@ -1,6 +1,6 @@
 # Validation against real repositories
 
-Measured 2026-11-28 11:19 by `python tests/validate_real.py`. Regenerated on every run; do not edit by hand.
+Measured 2026-11-28 13:19 by `python tests/validate_real.py`. Regenerated on every run; do not edit by hand.
 
 Method: each repository was copied with `git clone --depth 1` into a temp folder (tracked files only,
 so ignored and secret files never left the source). Every file was hashed before and after
@@ -11,10 +11,10 @@ compared. The sources were only read.
 
 | Target | Files before | Changed | Deleted | Created | CREATE | PROPOSE | REUSE | Git state same | Only untracked additions | Verdict |
 |---|---|---|---|---|---|---|---|---|---|---|
-| CHRYSOS | 1858 | 0 | 0 | 16 | 12 | 2 | 8 | True | True | PASS |
-| SUBSTRATE | 3638 | 0 | 0 | 21 | 18 | 0 | 4 | True | True | PASS |
-| MIDAS | 166 | 0 | 0 | 23 | 20 | 0 | 1 | True | True | PASS |
-| CSAW_REPO | 63 | 0 | 0 | 24 | 20 | 1 | 0 | True | True | PASS |
+| CHRYSOS | 1858 | 0 | 0 | 17 | 13 | 2 | 8 | True | True | PASS |
+| SUBSTRATE | 3640 | 0 | 0 | 22 | 19 | 0 | 4 | True | True | PASS |
+| MIDAS | 166 | 0 | 0 | 24 | 21 | 0 | 1 | True | True | PASS |
+| CSAW_REPO | 63 | 0 | 0 | 25 | 21 | 1 | 0 | True | True | PASS |
 
 What apply reused instead of duplicating, and what it only proposed:
 
@@ -39,7 +39,7 @@ An empty folder holding only the CSAW brief and its Python reference.
 | rule IDs cited in AGENTS.md | K5, K7, U1, U2, U3, U4, U5, U6, U7, U8, U9, U10, U11, U12, U13, U14, U15, U16, U17, U18, U19, U20, U21 |
 | METHOD sentences copied into AGENTS.md | 0 |
 | generated gates.toml validates (exit) | 0 |
-| files created | 24 |
+| files created | 25 |
 | verdict | PASS |
 
 ## Limits

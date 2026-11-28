@@ -2,12 +2,22 @@
 
 from __future__ import annotations
 
+import os
 import pathlib
 import re
 import subprocess
 import tomllib
 
-from common import sabotaged
+from common import ROOT, sabotaged
+
+GATE_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]{0,31}")
+
+
+def expand_home(cmd: str, home: str) -> str:
+    """Replace ${CHRYSALIS_HOME} and $CHRYSALIS_HOME in a gate command with the framework's location.
+    Generated gates name the framework this way instead of one machine's path. The runner expands it
+    itself because Windows cmd does not, and it touches no other $ in the command."""
+    return re.sub(r"\$\{CHRYSALIS_HOME\}|\$CHRYSALIS_HOME\b", lambda _: home.replace("\\", "/"), cmd)
 
 
 def load_gates(path: pathlib.Path):
@@ -20,7 +30,12 @@ def load_gates(path: pathlib.Path):
     if not gates:
         problems.append("no [[gate]] entries")
     for i, g in enumerate(gates, 1):
-        gid = g.get("id") or f"#{i}"
+        raw_id = g.get("id")
+        gid = raw_id if isinstance(raw_id, str) and raw_id else f"gate #{i}"
+        # The id names the gate's log file and is what --only selects, so it must be present and safe
+        # in a file name (R-15).
+        if not (isinstance(raw_id, str) and GATE_ID.fullmatch(raw_id)):
+            problems.append(f"{gid}: id must be letters, digits, '_' or '-' (for example \"T1\"), got {raw_id!r}")
         if gid in ids:
             problems.append(f"{gid}: duplicate id")
         ids.add(gid)
@@ -60,16 +75,33 @@ def cmd_gates(args) -> int:
         print("gates file:", "OK" if not problems else f"{len(problems)} problem(s)")
         if problems or args.action == "validate":
             return 1 if problems else 0
+    # --only must name gates that exist and can run; a typo that selects nothing is a failure, not a
+    # green run of zero gates (R-16).
+    automated = [g for g in gates if g["kind"] == "automated"]
+    if args.only:
+        known = {g["id"]: g["kind"] for g in gates}
+        bad = [f"{i} (no such gate)" if i not in known else f"{i} (a {known[i]} gate, not run by this command)"
+               for i in args.only if known.get(i) != "automated"]
+        if bad:
+            for b in bad:
+                print(f"FAIL --only {b}")
+            print("RESULT: FAIL (selection)")
+            return 1
+        automated = [g for g in automated if g["id"] in args.only]
+    if not automated:
+        print("FAIL no automated gate selected; nothing would run")
+        print("RESULT: FAIL (selection)")
+        return 1
     logs = pathlib.Path(".chrysalis") / "gates"
     logs.mkdir(parents=True, exist_ok=True)
+    env = dict(os.environ)
+    env["CHRYSALIS_HOME"] = env.get("CHRYSALIS_HOME") or str(ROOT)
     failed = 0
-    for g in gates:
-        if g["kind"] != "automated" or (args.only and g["id"] not in args.only):
-            continue
-        cmd = g["control"] if args.controls else g["run"]
+    for g in automated:
+        cmd = expand_home(g["control"] if args.controls else g["run"], env["CHRYSALIS_HOME"])
         log = logs / f"{g['id']}{'-control' if args.controls else ''}.log"
         with open(log, "w", encoding="utf-8") as fh:
-            code = subprocess.run(cmd, shell=True, stdout=fh, stderr=subprocess.STDOUT,
+            code = subprocess.run(cmd, shell=True, env=env, stdout=fh, stderr=subprocess.STDOUT,
                                   timeout=g.get("timeout", 3600)).returncode
         if args.controls:
             # Red only when the control failed AND its output carries the gate's own finding for the

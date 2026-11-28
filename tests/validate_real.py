@@ -35,7 +35,7 @@ BASE_RISK = {"live_production": False, "handles_money": False, "handles_personal
              "auth": False, "realtime": False, "client_engagement": False, "mutates_data": False}
 
 
-def config(name, description, problem, users, stage, existing, languages, platforms, **risk):
+def config(name, description, problem, users, stage, existing, languages, platforms, critical=None, **risk):
     return {
         "project": {"name": name, "title": name, "description": description, "problem": problem,
                     "users": users},
@@ -45,6 +45,7 @@ def config(name, description, problem, users, stage, existing, languages, platfo
         "risk": dict(BASE_RISK, **risk),
         "ci": {"remote": "on-request"},
         "agents": {"max_parallel_agents": 2},
+        **({"change": {"critical_paths": critical}} if critical else {}),
     }
 
 
@@ -54,7 +55,8 @@ TARGETS = {
                       True, ["c++", "typescript"], ["desktop", "plugin"], realtime=True),
     "SUBSTRATE": config("Substrate", "A provenance registry for music releases.", "Labels need evidence-backed "
                         "provenance records that cannot be quietly rewritten.", ["record labels", "listeners"],
-                        "pre-release", True, ["python", "typescript", "solidity"], ["web"], handles_money=True,
+                        "pre-release", True, ["python", "typescript", "solidity"], ["web"],
+                        critical=["contracts/*", "services/*"], handles_money=True,
                         handles_personal_data=True, auth=True),
     "MIDAS": config("MIDAS", "A wavetable synthesiser plugin.", "Producers need a synth that stays stable and "
                     "matches its presets.", ["music producers"], "pre-release", True, ["c++"],

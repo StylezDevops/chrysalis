@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import pathlib
+import re
 import sys
 
 import proportion
@@ -45,6 +46,7 @@ SCHEMA = {
     "agents.max_parallel_agents": (int, True),
     "framework": (dict, False),
     "framework.path": (str, False),
+    "framework.ref": (str, False),
     "change": (dict, False),
     "change.critical_paths": (list, False),
     "change.small_lines": (int, False),
@@ -56,6 +58,8 @@ SCHEMA = {
 
 
 NON_EMPTY = {"project.name", "project.description", "project.problem", "project.users", "stack.languages"}
+# Risk flags whose code must be named in change.critical_paths, so a change to it is C2 (R-18).
+SENSITIVE_FLAGS = ("auth", "handles_money", "handles_personal_data", "mutates_data")
 
 
 def questions(cfg) -> list[str]:
@@ -106,9 +110,21 @@ def questions(cfg) -> list[str]:
         qs.append(f"risk.live_production is true but stage is '{stage}'. Has the project been released?")
     if isinstance(agents, int) and not isinstance(agents, bool) and not 1 <= agents <= 8:
         qs.append(f"agents.max_parallel_agents is {agents}; it must be 1 to 8. What cap do you want?")
+    ref = lookup(cfg, "framework.ref")
+    if isinstance(ref, str) and not re.fullmatch(r"[0-9a-f]{40}", ref):
+        qs.append(f"framework.ref is {ref!r}; it must be a full 40-character commit SHA, so the rules CI checks "
+                  "cannot move under the project. Which commit?")
     small = lookup(cfg, "change.small_lines")
     if isinstance(small, int) and not isinstance(small, bool) and not 1 <= small <= 500:
         qs.append(f"change.small_lines is {small}; it must be 1 to 500. How many lines is a small change?")
+    # A sensitive risk only raises a change's class through the paths that hold it, so the paths must be
+    # named (R-18). Without them a small change to auth or payment code classified as C0.
+    critical = lookup(cfg, "change.critical_paths")
+    if not (isinstance(critical, list) and critical):
+        for flag in SENSITIVE_FLAGS:
+            if lookup(cfg, f"risk.{flag}") is True:
+                qs.append(f"risk.{flag} is true but change.critical_paths names no paths. Which paths hold "
+                          f"that code, so a change to them is classified C2?")
     qs += proportion.adapt_questions(cfg, grades())
     # One question per path is enough; keep the first.
     seen, out = set(), []

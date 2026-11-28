@@ -14,7 +14,7 @@ Rewritten at the end of every session (U12). Read it first.
 ## Where it stopped (2026-11-28)
 
 An outside review asked for proportion, honest deferral, wider enforcement and independence from
-Claude Code. All four went in (spec clauses C15 to C18, ambiguities A19 to A22, budget 37):
+Claude Code. All four went in (spec clauses C15 to C18, ambiguities A19 to A23, budget 47):
 
 - `PROPORTION.md`: rule grades, change classes C0 to C2, what enforces each rule, adaptations.
 - `classify`, `doctor`, `skills install`; register states SCHEDULED and ACCEPTED; `--release`.
@@ -34,3 +34,17 @@ Claude Code. All four went in (spec clauses C15 to C18, ambiguities A19 to A22, 
 - R-13: `gates run --controls` counted any non-zero exit as a control going red. Every automated
   gate now declares `control_expect`, the finding its own detector prints for the planted defect, and
   a control counts only when it fails and its output matches.
+- R-14 to R-18 from a source-level review: worktree finish refuses a build folder inside the repo,
+  worktree or git directory; gate ids required and file-name safe; `--only` must select real automated
+  gates; apply refuses any target that resolves outside the repo; sensitive risk flags need
+  `change.critical_paths`, and doctor fails a stale entry.
+- The same review: the generated workflow follows `ci.remote` and runs the project's gates and
+  controls; generated files say `${CHRYSALIS_HOME}`, which the gate runner sets and expands; the
+  framework pin is a full commit or apply refuses; every action is pinned to a SHA.
+- `hooks/block_unverified_install.py`: an install of a package no manifest declares needs a
+  human-approved entry in `docs/dependencies.md`.
+
+## How changes land now
+
+`main` requires the 5 CI checks. Push work to a branch, let CI pass on it, then merge or fast-forward
+`main` to that commit; a direct push of an unchecked commit to `main` is refused.

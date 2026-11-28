@@ -115,6 +115,12 @@ def doctor_checks(repo: pathlib.Path, cfg_path: str | None, release: bool):
 
     handover = inspect(repo).get("assets", {}).get("handover")
     results.append(("handover", [] if handover else ["no handover file (U12)"]))
+
+    # A critical path that matches no tracked file protects nothing: the list has gone stale (R-18).
+    critical = (((cfg or {}).get("change") or {}).get("critical_paths") or []) if not qs else []
+    files = tracked.splitlines()
+    results.append(("critical paths", [f"change.critical_paths entry {g} matches no tracked file"
+                                       for g in critical if not any(fnmatch.fnmatchcase(f, g) for f in files)]))
     return results
 
 

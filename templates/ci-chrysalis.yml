@@ -1,35 +1,48 @@
-# Compliance with the method (chrysalis.py doctor) and the change class of each pull request
-# (chrysalis.py classify). Proposed by chrysalis.py apply; edit it like any other file.
-# The framework is pinned to the commit that generated this file, so the rules it checks change only
-# when someone moves the ref on purpose.
+# The method in CI: compliance (chrysalis.py doctor), the change class of each pull request
+# (chrysalis.py classify), and the project's own gates with their controls (gates.toml).
+# Proposed by chrysalis.py apply; edit it like any other file. Its triggers follow ci.remote in
+# config_project.json ({{ci_remote}}).
+#
+# The gate steps run the commands in gates.toml, which need the project's own toolchain: add its setup
+# steps (compilers, package installs) before them. If another pipeline already runs the gates, delete
+# the gate steps here rather than run them twice.
+#
+# The framework is pinned to an immutable commit, so the rules it checks change only when someone moves
+# the ref on purpose. Every action is pinned to a commit SHA for the same reason.
 
 name: chrysalis
 
 on:
-  pull_request:
-  push:
-    branches: [{{default_branch}}]
+{{ci_triggers}}
 
 permissions:
   contents: read
 
 jobs:
-  doctor:
+  chrysalis:
     runs-on: ubuntu-latest
+    env:
+      CHRYSALIS_HOME: ${{ github.workspace }}/.chrysalis-framework
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
         with:
           fetch-depth: 0
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
         with:
           repository: StylezDevops/chrysalis
           ref: {{framework_ref}}
           path: .chrysalis-framework
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5
         with:
           python-version: "3.13"
       - name: Compliance (config, register, markers, gates, lusser, agent contract, handover)
-        run: python .chrysalis-framework/scripts/chrysalis.py doctor --repo .
+        run: python "$CHRYSALIS_HOME/scripts/chrysalis.py" doctor --repo .
       - name: Change class and what it asks for
         if: github.event_name == 'pull_request'
-        run: python .chrysalis-framework/scripts/chrysalis.py classify --repo . --base "origin/${{ github.base_ref }}"
+        run: python "$CHRYSALIS_HOME/scripts/chrysalis.py" classify --repo . --base "origin/${{ github.base_ref }}"
+      - name: gates.toml is well formed
+        run: python "$CHRYSALIS_HOME/scripts/chrysalis.py" gates validate --file gates.toml
+      - name: The project's gates pass
+        run: python "$CHRYSALIS_HOME/scripts/chrysalis.py" gates run --file gates.toml
+      - name: Every gate's control goes red for the right reason
+        run: python "$CHRYSALIS_HOME/scripts/chrysalis.py" gates run --controls --file gates.toml

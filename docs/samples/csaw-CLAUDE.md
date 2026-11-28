@@ -7,6 +7,6 @@ rules as any other tool. This file holds only what is specific to Claude Code.
 
 ## Hooks
 
-The hooks in `<chrysalis>/hooks/` refuse mistakes a machine can recognise (U7). Wire them in
-`.claude/settings.json` as `<chrysalis>/hooks/README.md` shows. Other tools call the same hooks
-through `<chrysalis>/hooks/check.py`.
+The hooks in `${CHRYSALIS_HOME}/hooks/` refuse mistakes a machine can recognise (U7). Wire them in
+`.claude/settings.json` as `${CHRYSALIS_HOME}/hooks/README.md` shows. Other tools call the same hooks
+through `${CHRYSALIS_HOME}/hooks/check.py`.

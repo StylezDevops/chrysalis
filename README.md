@@ -85,7 +85,7 @@ ambiguity in the spec before building, and ties every spec clause to a check.
 | `scripts/` | The tool, `chrysalis.py`: validate, rules, inspect, plan, apply, classify, doctor, gates, register check, worktree (new, finish, sweep), skills install, check. One module per command, none over 500 lines. Standard library only. |
 | `templates/` | What `apply` writes: AGENTS.md (with a CLAUDE.md that imports it), a CI workflow, initial.md, backlog, register, handover, ADR, Definition of Ready and Done, bug classes, names that do not exist, verification, fix, audit and change records, a pilot log, gates.toml and lusser files; plus a change request and runbook for live systems and a threat model where money, personal data or auth are involved. |
 | `skills/` | Agent skills: `chrysalis-init` plus 6 more (table below). |
-| `hooks/` | 4 hooks that refuse known mistakes, an adapter (`check.py`) that runs them from any tool, and a git pre-commit form of the deferral-marker hook, each with tests. |
+| `hooks/` | 5 hooks that refuse known mistakes (an unverified package install among them), an adapter (`check.py`) that runs them from any tool, and a git pre-commit form of the deferral-marker hook, each with tests. |
 | `.pre-commit-hooks.yaml` | The deferral-marker hook for the pre-commit framework. |
 | `.github/workflows/ci.yml` | Every gate that needs no local data, with its control, on Linux and Windows; the quick start below on an empty project; the pre-commit hook run for real. |
 | `AGENTS.md`, `config_project.json`, `docs/handover.md` | This repo on its own method: `doctor` checks it (gate D1). |
@@ -269,19 +269,19 @@ measured on 2026-11-28, Windows 11, Python 3.14. Each line can be re-run with it
 
 | Check | Command | Result |
 |---|---|---|
-| Spec tests for clauses C1 to C14 | `python tests/run_all.py --only chrysalis` | 67 tests, all pass |
-| Spec tests for clauses C15 to C18 (proportion, fault states, doctor, portability) | `python tests/run_all.py --only governance` | 38 tests, all pass |
+| Spec tests for clauses C1 to C14 | `python tests/run_all.py --only chrysalis` | 71 tests, all pass |
+| Spec tests for clauses C15 to C18 (proportion, fault states, doctor, portability) | `python tests/run_all.py --only governance` | 48 tests, all pass |
 | lusser tests | `python tests/run_all.py --only lusser` | 18 tests, all pass |
-| Hook tests | `python tests/run_all.py --only hooks` | 35 block and 36 allow cases, 0 wrong |
+| Hook tests | `python tests/run_all.py --only hooks` | 57 block and 51 allow cases, 0 wrong |
 | Evidence: cited files exist and hold their quotes | `python tests/run_all.py --only evidence` | 3 tests, all pass |
 | Each of 20 deliberate defects is caught by a test naming its clause | `python tests/run_all.py --sweep` | 20 of 20 caught |
-| `apply` on copies of 4 real repositories and 1 new project | `python tests/validate_real.py` | 0 files changed or deleted across 5,725; all 5 pass; see `docs/validation.md` |
+| `apply` on copies of 4 real repositories and 1 new project | `python tests/validate_real.py` | 0 files changed or deleted across 5,727; all 5 pass; see `docs/validation.md` |
 | 8 automated gates, including D1: this repo passes its own `doctor --release` | `python scripts/chrysalis.py gates run` | 8 pass |
 | Every gate's control goes red, and its output shows the gate's own finding for the planted defect | `python scripts/chrysalis.py gates run --controls` | 8 of 8 red, each for the right reason |
 | Spec coverage and part budget | `python skills/lusser/scripts/lusser.py check` | OK; 18 clauses covered, 36 of 36 parts |
 | The deferral hook through the real pre-commit framework | `bash tests/precommit_real.sh` | refuses an uncited marker, allows a cited one (CI) |
 
-13 defects have been found in Chrysalis itself and fixed with regression tests: 3 by the
+18 defects have been found in Chrysalis itself and fixed with regression tests: 3 by the
 real-repository run; 2 where a byte-order mark written by PowerShell broke file reading; 2 by running
 the suites in a fresh clone before CI was added (a skipped test reported as a pass, and the validation
 crashing instead of skipping); 3 from an outside code review (worktrees ignoring the configured
@@ -289,15 +289,18 @@ default branch, a pipe inside a table cell shifting the register's columns, and 
 limit); 1 found by checking that review's first fix against its siblings (U21): `lusser parts` still
 ignored the configured default branch; 1 while acting on a second review: `chrysalis.py` had grown
 to 1,341 lines against the method's own limit of 500, so it is now 14 modules and `check` enforces the
-limit; and 1 from that review's second look: `gates run --controls` took any non-zero exit as a control
-going red, so every gate now declares the finding its control must show. They are in `docs/register.md`
-with their numbers.
+limit; 1 from that review's second look: `gates run --controls` took any non-zero exit as a control
+going red, so every gate now declares the finding its control must show; and 5 from a source-level
+review: `worktree finish` would delete a build folder inside the repository, `.git` included; a gate with
+no id passed validation; a mistyped `--only` reported green; `apply` could write through a symlinked
+folder to outside the repository; and the sensitive risk flags did not reach the change classifier.
+They are in `docs/register.md` with their numbers.
 
 The real-repository validation and the evidence test read local copies of the source projects. Their
 paths are in a gitignored file, `tests/evidence_roots.local.json`. On another machine, CI included, the
 evidence suite prints "PASS, 2 of 3 skipped" and the validation exits 3 with "SKIPPED"; neither reports
 a plain pass. The last full run is in `docs/validation.md`: 4 real repositories
-and 1 new project, 5,725 files, 0 changed or deleted.
+and 1 new project, 5,727 files, 0 changed or deleted.
 
 ## Licence
 
@@ -314,3 +317,10 @@ MIT. See `LICENSE`.
   real-repository validation shows that setting a project up is safe; it does not show the method pays
   for itself on someone else's team. `docs/pilot.md` is how a team finds out.
 - The validation copies tracked files only, so assets that exist only as ignored files were not tested.
+- `gates run` executes the commands in the project's `gates.toml` through the shell. That file is the
+  project's own executable config, like a Makefile, so Chrysalis is not a sandbox: run the gates of an
+  untrusted contribution (a fork's pull request) only in a throwaway CI runner with a read-only token,
+  which is how the generated workflow is set up.
+- The install guard checks that a package's registry check is on record with a human's approval before
+  it installs; it cannot do the check itself, which needs the network and judgement, and it does not see
+  an install hidden inside a script the command runs.

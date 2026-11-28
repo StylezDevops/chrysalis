@@ -48,9 +48,16 @@ def cmd_worktree(args) -> int:
         print(f"FAIL no worktree at {path}")
         return 1
     build = pathlib.Path(args.build_dir).resolve() if args.build_dir else None
-    if build and (build == repo or build in repo.parents or build == path or build in path.parents):
-        print(f"FAIL --build-dir {build} is or contains the repo or the worktree; nothing removed")
-        return 1
+    if build:
+        # Refused before anything is removed (R-14): the build directory may not be, contain or sit
+        # inside the repo, the worktree or the git directory. Only ancestors were refused once, so
+        # --build-dir .git deleted the repository's metadata.
+        code, common = git_run(repo, "rev-parse", "--path-format=absolute", "--git-common-dir")
+        protected = [repo, path] + ([pathlib.Path(common).resolve()] if code == 0 and common else [])
+        for p in protected:
+            if build == p or build in p.parents or p in build.parents:
+                print(f"FAIL --build-dir {build} is, contains or sits inside {p}; nothing removed")
+                return 1
     code, dirty = git_run(path, "status", "--porcelain")
     if code or dirty:
         print(f"FAIL worktree has uncommitted changes; nothing removed:\n{dirty}")

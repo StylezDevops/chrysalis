@@ -29,6 +29,7 @@ def git(repo, *args):
 BLOCK_COMMANDS = [
     "cat > notes.txt <<'EOF'\nhello\nEOF",
     "ci_local.bat | tail -5",
+    "npm install some-package-nobody-checked",
 ]
 ALLOW_COMMANDS = [
     "ls -la",

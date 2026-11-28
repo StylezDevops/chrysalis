@@ -149,7 +149,8 @@ class Rules(unittest.TestCase):
                 risk = dict(zip(FLAGS, bits))
                 if (stage == "live") != risk["live_production"]:
                     continue
-                cfg = valid_config(stage=stage, stack__platforms=platforms, ci__remote=remote)
+                cfg = valid_config(stage=stage, stack__platforms=platforms, ci__remote=remote,
+                                   change={"critical_paths": ["src/*"]})
                 cfg["risk"] = risk
                 got = {i for i in self.selected(cfg) if i.startswith("K")}
                 self.assertEqual(got, reference_selection(cfg), json.dumps(cfg["risk"]) + stage)
@@ -202,6 +203,23 @@ class ExistingRepo(unittest.TestCase):
 
     def apply(self):
         return run("apply", self.repo, "--config", self.cfg, "--home", self.home)
+
+    def test_C4_apply_never_writes_through_a_symlink_out_of_the_repo(self):
+        # R-17: exclusive create protects an existing file, not a symlinked parent folder, so a .github
+        # link to another folder let apply create a workflow outside the repository.
+        outside = self.base / "outside"
+        outside.mkdir()
+        try:
+            (self.repo / ".github").symlink_to(outside, target_is_directory=True)
+        except (OSError, NotImplementedError) as e:
+            self.skipTest(f"this machine cannot create symlinks: {e}")
+        before = tree_hashes(self.repo)
+        plan = run("plan", self.repo, "--config", self.cfg, "--no-home")
+        self.assertIn("REFUSE .github/workflows/chrysalis.yml", plan.stdout)
+        r = run("apply", self.repo, "--config", self.cfg, "--no-home")
+        self.assertEqual(r.returncode, 1, r.stdout)
+        self.assertEqual(list(outside.rglob("*")), [], "apply wrote outside the repository")
+        self.assertEqual(tree_hashes(self.repo), before, "apply wrote part of the plan before refusing")
 
     def test_C4_no_pre_existing_file_changes(self):
         before = tree_hashes(self.repo)
@@ -316,7 +334,8 @@ class NewProject(unittest.TestCase):
         self.base = pathlib.Path(self._tmp.name)
         self.repo = self.base / "new"
         self.repo.mkdir()
-        cfg = valid_config(stage="pre-release", stack__platforms=["web"], risk__handles_money=True)
+        cfg = valid_config(stage="pre-release", stack__platforms=["web"], risk__handles_money=True,
+                           change={"critical_paths": ["src/*"]})
         self.cfg = write_config(self.base, cfg)
         self.r = run("apply", self.repo, "--config", self.cfg, "--home", self.base / "home")
 

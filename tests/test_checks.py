@@ -76,6 +76,34 @@ class Gates(unittest.TestCase):
             self.assertEqual(r.returncode, 1, r.stdout)
             self.assertIn("did not prove", r.stdout)
 
+    def test_C8_validate_requires_a_safe_gate_id(self):
+        # R-15: a missing id passed validate as "#1" and then crashed gates run.
+        body = (f'purpose = "p"\nkind = "automated"\nrun = \'{self.OK}\'\npass = "exit 0"\n'
+                f'control = \'{self.DETECTS}\'\ncontrol_expect = \'^21$\'\n')
+        for header in ("[[gate]]\n", '[[gate]]\nid = "../x"\n', '[[gate]]\nid = "a b"\n', '[[gate]]\nid = ""\n'):
+            with self.subTest(header=header.strip()), tempdir() as d:
+                p = self.write(d, header + body)
+                r = run("gates", "validate", "--file", p)
+                self.assertEqual(r.returncode, 1, r.stdout)
+                self.assertIn("id", r.stdout)
+                ran = run("gates", "run", "--file", p, cwd=d)
+                self.assertNotIn("Traceback", ran.stderr)
+
+    def test_C8_only_must_select_real_automated_gates(self):
+        # R-16: --only with a typo selected nothing and reported "OK (0 failing)".
+        with tempdir() as d:
+            p = self.write(d, self.gate(d, self.DETECTS).read_text(encoding="utf-8")
+                           + '\n[[gate]]\nid = "H1"\npurpose = "a person tries it"\nkind = "human"\n'
+                             'procedure = "they try it"\n')
+            for only, needle in ((["T99"], "T99"), (["H1"], "H1"), (["G1", "T99"], "T99")):
+                with self.subTest(only=only):
+                    r = run("gates", "run", "--file", p, "--only", *only, cwd=d)
+                    self.assertEqual(r.returncode, 1, r.stdout)
+                    self.assertIn(needle, r.stdout)
+                    self.assertNotIn("RESULT: OK", r.stdout)
+            ok = run("gates", "run", "--file", p, "--only", "G1", cwd=d)
+            self.assertEqual(ok.returncode, 0, ok.stdout)
+
     def test_C8_validate_requires_a_control_expectation_that_compiles(self):
         with tempdir() as d:
             p = self.write(d, f'[[gate]]\nid = "G1"\npurpose = "p"\nkind = "automated"\nrun = \'{self.OK}\'\n'

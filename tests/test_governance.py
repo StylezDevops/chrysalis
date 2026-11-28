@@ -168,6 +168,21 @@ class Classify(unittest.TestCase):
         high = self.classify("--declared", "C2")
         self.assertEqual(high.returncode, 0, high.stdout)
 
+    def test_C15_a_sensitive_risk_flag_needs_its_critical_paths(self):
+        # R-18: risk.auth could be true while a small change to auth code classified as C0, because
+        # nothing tied the risk flags to change.critical_paths.
+        for flag in ("auth", "handles_money", "handles_personal_data", "mutates_data"):
+            with self.subTest(flag=flag):
+                qs = project_config.questions(valid_config(**{f"risk__{flag}": True}))
+                self.assertTrue(any("change.critical_paths" in q and flag in q for q in qs), qs)
+                ok = valid_config(**{f"risk__{flag}": True}, change={"critical_paths": ["core/*"]})
+                self.assertEqual(project_config.questions(ok), [])
+
+    def test_C15_a_small_change_to_a_sensitive_path_is_c2(self):
+        self.config(risk__auth=True, change={"critical_paths": ["core/*"]})
+        (self.repo / "core" / "money.py").write_text("rate = 3\n", encoding="utf-8")
+        self.assertEqual(self.cls(self.classify()), "C2")
+
     def test_C15_an_invalid_config_stops_classify(self):
         (self.repo / "config_project.json").write_text('{"stage": "sideways"}', encoding="utf-8")
         r = self.classify()
@@ -322,11 +337,21 @@ class Doctor(unittest.TestCase):
         self.assertIn("1 file(s) exempt by markers.exempt", r.stdout)
 
     def test_C17_the_contract_must_match_the_config(self):
-        cfg = dict(self.cfg, risk=dict(self.cfg["risk"], handles_money=True))
+        cfg = dict(self.cfg, risk=dict(self.cfg["risk"], handles_money=True), change={"critical_paths": ["app.py"]})
         (self.repo / "config_project.json").write_text(json.dumps(cfg, indent=2), encoding="utf-8")
         r = self.doctor()
         self.assertEqual(r.returncode, 1, r.stdout)
         self.assertIn("does not list K4", r.stdout)
+
+    def test_C17_a_critical_path_that_matches_nothing_fails(self):
+        # R-18: a critical-path list that no longer matches the code protects nothing.
+        cfg = dict(self.cfg, change={"critical_paths": ["app.py", "src/auth/*"]})
+        (self.repo / "config_project.json").write_text(json.dumps(cfg, indent=2), encoding="utf-8")
+        commit_all(self.repo)
+        r = self.doctor()
+        self.assertEqual(r.returncode, 1, r.stdout)
+        self.assertIn("src/auth/* matches no tracked file", r.stdout)
+        self.assertNotIn("'app.py' matches", r.stdout)
 
     def test_C17_an_overdue_adaptation_fails(self):
         entry = dict(Adapt.ENTRY, revisit="2000-01-01")
@@ -354,7 +379,7 @@ class Doctor(unittest.TestCase):
 
     def test_C17_apply_proposes_a_ci_workflow_pinned_to_a_framework_commit(self):
         text = (self.repo / ".github" / "workflows" / "chrysalis.yml").read_text(encoding="utf-8")
-        self.assertIn("chrysalis.py doctor --repo .", text)
+        self.assertIn("chrysalis.py\" doctor --repo .", text)
         self.assertIn('--base "origin/${{ github.base_ref }}"', text)
         ref = re.search(r"(?m)^\s*ref: (\S+)$", text).group(1)
         expected = git(ROOT, "rev-parse", "HEAD")

@@ -6,7 +6,7 @@ plain arguments, runs the hooks, and answers with an exit code any tool can act 
 another agent platform, or none, gets the same refusals.
 
   python hooks/check.py command "<shell command>"   the command hooks (piped gate output, undeclared
-                                                     npx, heredoc file writes)
+                                                     npx, unverified installs, heredoc file writes)
   python hooks/check.py file PATH [PATH ...]         deferral markers added to each file since HEAD
   python hooks/check.py staged                       deferral markers added by the staged change
 
@@ -30,7 +30,8 @@ HERE = pathlib.Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 from block_deferral_markers import SOURCE, count  # noqa: E402
 
-COMMAND_HOOKS = ("block_piped_register.py", "block_undeclared_npx.py", "no-heredoc-file-write.py")
+COMMAND_HOOKS = ("block_piped_register.py", "block_undeclared_npx.py", "block_unverified_install.py",
+                 "no-heredoc-file-write.py")
 
 
 class HookError(Exception):

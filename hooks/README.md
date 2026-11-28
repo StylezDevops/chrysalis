@@ -9,6 +9,7 @@ payload; `check.py` runs them for any other tool (below).
 |---|---|---|
 | `block_piped_register.py` | piping a gate or CI script's output, which throws away its exit code | a red build pushed to main on a piped "exit 0" |
 | `block_undeclared_npx.py` | `npx`, `npm exec`, `pnpm dlx`, `yarn dlx`, `bunx` on a tool the project has not installed | `npx prettier` downloaded a formatter and reflowed about 240 untouched lines |
+| `block_unverified_install.py` | installing a package (npm, pnpm, yarn, bun, pip, uv, poetry, pipx, cargo, go, gem, composer, dotnet) that no manifest declares and `docs/dependencies.md` has no human-approved entry for | agents name packages that do not exist and attackers register them; the npm-slopsquat-guard skill was advice until this made its check a precondition |
 | `no-heredoc-file-write.py` | writing a file with a cat/tee heredoc, and Python heredocs containing backslashes | files corrupted by halved backslashes through the Bash tool |
 | `block_deferral_markers.py` | an edit that adds TODO, FIXME, HACK, "for now" or a workaround marker to a source file, unless the marker's line cites a register row such as `(R-12)` | 30 "for now" comments in the in-work project hid placeholders that reported success |
 
@@ -19,7 +20,7 @@ allowed, 2 refused (the reason on stderr), 1 when a hook could not answer, which
 allow. Point any agent's pre-command or post-edit hook, an editor task or a CI step at it:
 
 ```
-python CHRYSALIS/hooks/check.py command "<shell command>"   # piped gate output, undeclared npx, heredoc writes
+python CHRYSALIS/hooks/check.py command "<shell command>"   # piped gate output, undeclared npx, unverified installs, heredoc writes
 python CHRYSALIS/hooks/check.py file PATH [PATH ...]         # deferral markers added since HEAD
 python CHRYSALIS/hooks/check.py staged                       # deferral markers in the staged change
 python CHRYSALIS/hooks/check.py --json command "<cmd>"       # {"decision": ..., "hook": ..., "reason": ...}
@@ -47,7 +48,7 @@ To install it in a project, put this in `.git/hooks/pre-commit` (or in a folder 
 exec python "CHRYSALIS/hooks/git_pre_commit.py"
 ```
 
-The other 3 hooks guard shell commands an agent runs, so they have no git equivalent; `check.py command` runs them for any agent.
+The other 4 hooks guard shell commands an agent runs, so they have no git equivalent; `check.py command` runs them for any agent.
 
 Run the tests:
 

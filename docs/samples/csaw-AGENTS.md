@@ -5,10 +5,15 @@ An audio effect plugin ported from a Python reference.
 This file is for every coding agent and every person working here, whatever tool they use. Tool-specific
 files (`CLAUDE.md` and the like) import it and add only what is specific to their tool.
 
+`${CHRYSALIS_HOME}` below is where Chrysalis is checked out. Set `CHRYSALIS_HOME` once per machine to
+your own clone (bash: `export CHRYSALIS_HOME=~/chrysalis`; PowerShell: `$env:CHRYSALIS_HOME =
+"$HOME\chrysalis"`). `chrysalis.py gates run` sets it for the gates it runs, and the CI workflow sets it
+to its own checkout.
+
 ## Read first
 
 1. `initial.md` in this repo: purpose, users, constraints, risks.
-2. The method: `<chrysalis>/PROPORTION.md` first, then `<chrysalis>/METHOD.md` for the
+2. The method: `${CHRYSALIS_HOME}/PROPORTION.md` first, then `${CHRYSALIS_HOME}/METHOD.md` for the
    rule IDs below. Their text lives there only; this file does not repeat it.
 3. `docs/handover.md`: where the last session stopped.
 4. `docs/names-that-do-not-exist.md`: names agents have invented here, and the real ones.
@@ -19,7 +24,7 @@ files (`CLAUDE.md` and the like) import it and add only what is specific to thei
 Before starting a change, and again before calling it done, run:
 
 ```
-python "<chrysalis>/scripts/chrysalis.py" classify --repo .
+python "${CHRYSALIS_HOME}/scripts/chrysalis.py" classify --repo .
 ```
 
 It prints the change's class (C0, C1 or C2), why, and what that class asks for. Work to that list.
@@ -56,7 +61,7 @@ Conditional, selected from `config_project.json` on 2026-11-28:
 - K5 (because `risk.realtime`)
 - K7 (because `ci.remote == "on-request"`)
 
-Rerun `python "<chrysalis>/scripts/chrysalis.py" rules --config config_project.json` after
+Rerun `python "${CHRYSALIS_HOME}/scripts/chrysalis.py" rules --config config_project.json` after
 changing the config, and update this list from its output. `chrysalis.py doctor` fails while the list
 and the config disagree.
 

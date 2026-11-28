@@ -42,3 +42,13 @@ executes it and no kind fits it. Tests and fixtures are checks, not parts.
 | 35 | chrysalis.py skills install | interface | C18; never overwrites a different skill; --prefix installs beside it | no |
 | 36 | fix R-12: chrysalis.py split into 14 modules by responsibility, spec tests into 3 files, and a line limit in check | rework | found while acting on the 2026-11-28 review (A21) | no |
 | 37 | fix R-13: a control counts as red only with the gate's own finding (control_expect) | rework | found by the outside review's second look (A22) | no |
+| 38 | fix R-14: worktree finish refuses a build folder inside the repo, worktree or git directory | rework | found by the source-level review (A23) | no |
+| 39 | fix R-15: gate ids required and safe in a file name | rework | same review | no |
+| 40 | fix R-16: --only must select real automated gates | rework | same review | no |
+| 41 | fix R-17: apply refuses a target that resolves outside the repo | rework | same review | no |
+| 42 | fix R-18: sensitive risk flags need critical paths; doctor fails a stale path | rework | same review | no |
+| 43 | generated workflow follows ci.remote and runs the project's gates and controls | rework | same review | no |
+| 44 | ${CHRYSALIS_HOME} in generated files, set and expanded by the gate runner | rework | same review; no machine path leaves this checkout | no |
+| 45 | framework.ref: the pin is a full commit or apply refuses | config | same review; no fallback to a moving branch | no |
+| 46 | every GitHub Action pinned to a commit SHA | config | same review | no |
+| 47 | hooks/block_unverified_install.py and the docs/dependencies.md template | module | the supply-chain check enforced, not only advised (A23) | no |

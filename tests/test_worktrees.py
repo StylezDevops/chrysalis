@@ -120,6 +120,22 @@ class Worktrees(unittest.TestCase):
         self.assertTrue((self.repo / "a.txt").exists())
         self.assertTrue((self.wt_root / "job6").exists())
 
+    def test_C12_finish_refuses_a_build_dir_inside_the_repo_or_the_worktree(self):
+        # R-14: only ancestors were refused, so --build-dir .git removed the repository's git metadata.
+        self.assertEqual(self.wt("new", "job7").returncode, 0)
+        self.commit_in(self.wt_root / "job7", "e.txt")
+        self.merge("agent/job7")
+        (self.repo / "src").mkdir()
+        (self.repo / "src" / "keep.txt").write_text("k\n", encoding="utf-8")
+        for inside in (self.repo / ".git", self.repo / "src", self.wt_root / "job7" / "sub"):
+            with self.subTest(build=inside.name):
+                r = self.wt("finish", "job7", "--build-dir", inside)
+                self.assertEqual(r.returncode, 1, r.stdout)
+                self.assertIn("nothing removed", r.stdout)
+        self.assertTrue((self.repo / ".git" / "HEAD").exists(), "the repository's git metadata was removed")
+        self.assertTrue((self.repo / "src" / "keep.txt").exists())
+        self.assertTrue((self.wt_root / "job7").exists(), "the worktree was removed before the refusal")
+
     def test_C12_sweep_removes_merged_agent_leftovers_and_keeps_the_rest(self):
         # merged, with a worktree (this tool's naming)
         self.assertEqual(self.wt("new", "done").returncode, 0)

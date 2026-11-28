@@ -5,6 +5,11 @@
 This file is for every coding agent and every person working here, whatever tool they use. Tool-specific
 files (`CLAUDE.md` and the like) import it and add only what is specific to their tool.
 
+`{{framework_path}}` below is where Chrysalis is checked out. Set `CHRYSALIS_HOME` once per machine to
+your own clone (bash: `export CHRYSALIS_HOME=~/chrysalis`; PowerShell: `$env:CHRYSALIS_HOME =
+"$HOME\chrysalis"`). `chrysalis.py gates run` sets it for the gates it runs, and the CI workflow sets it
+to its own checkout.
+
 ## Read first
 
 1. `initial.md` in this repo: purpose, users, constraints, risks.
