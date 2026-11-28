@@ -23,9 +23,8 @@ Claude Code. All four went in (spec clauses C15 to C18, ambiguities A19 to A21, 
 
 ## Open
 
-- Gate A1 (human): the generated samples now include `docs/samples/csaw-AGENTS.md`, and
-  `csaw-CLAUDE.md` changed to an import. The owner's acceptance of 2026-11-26 covered the old
-  samples; it needs renewing.
+- Nothing. Gate A1 was renewed by the owner on 2026-11-28 for the new samples (`csaw-AGENTS.md`,
+  and `csaw-CLAUDE.md` as an import).
 
 ## Closed this session
 
