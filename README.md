@@ -269,7 +269,7 @@ measured on 2026-11-28, Windows 11, Python 3.14. Each line can be re-run with it
 
 | Check | Command | Result |
 |---|---|---|
-| Spec tests for clauses C1 to C14 | `python tests/run_all.py --only chrysalis` | 65 tests, all pass |
+| Spec tests for clauses C1 to C14 | `python tests/run_all.py --only chrysalis` | 67 tests, all pass |
 | Spec tests for clauses C15 to C18 (proportion, fault states, doctor, portability) | `python tests/run_all.py --only governance` | 38 tests, all pass |
 | lusser tests | `python tests/run_all.py --only lusser` | 18 tests, all pass |
 | Hook tests | `python tests/run_all.py --only hooks` | 35 block and 36 allow cases, 0 wrong |
