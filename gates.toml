@@ -67,6 +67,16 @@ control = 'python tests/doctor_control.py'
 control_expect = 'scripts/planted\.py: 1 marker\(s\) cite no register row'
 
 [[gate]]
+id = "I1"
+purpose = "The control packs hold on real tools in Docker: policies catch planted violations by ID, a plan is captured, a cluster deploy is verified and rolled back, a migration runs up, up, down, up."
+kind = "automated"
+run = 'python tests/infra_sim.py'
+pass = "exit 0"
+control = 'python tests/infra_sim.py --control'
+control_expect = '^FINDING CKV_K8S_16 policy:kubernetes$'
+timeout = 2400
+
+[[gate]]
 id = "V1"
 purpose = "apply changes no pre-existing file in copies of real repositories and builds a new project."
 kind = "automated"

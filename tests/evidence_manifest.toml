@@ -183,3 +183,27 @@ rule = "U21"
 project = "SUBSTRATE"
 path = "CLAUDE.md"
 quote = "One promise, every implementation"
+
+[[cite]]
+rule = "K11"
+project = "SUBSTRATE"
+path = "internaldocs/AUDIT_REGISTER.md"
+quote = "The egress NetworkPolicy does not bound connector SSRF"
+
+[[cite]]
+rule = "K11"
+project = "SUBSTRATE"
+path = "internaldocs/AUDIT_REGISTER.md"
+quote = "no controller run here"
+
+[[cite]]
+rule = "K11"
+project = "SUBSTRATE"
+path = "services/api/tests/test_infra_networkpolicy.py"
+quote = "This checks EVERY NetworkPolicy shipped"
+
+[[cite]]
+rule = "K12"
+project = "SUBSTRATE"
+path = "internaldocs/AUDIT_REGISTER.md"
+quote = "A Postgres URL that cannot connect silently becomes SQLite"

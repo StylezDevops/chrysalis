@@ -1,6 +1,6 @@
 # Validation against real repositories
 
-Measured 2026-11-28 13:19 by `python tests/validate_real.py`. Regenerated on every run; do not edit by hand.
+Measured 2026-11-28 14:34 by `python tests/validate_real.py`. Regenerated on every run; do not edit by hand.
 
 Method: each repository was copied with `git clone --depth 1` into a temp folder (tracked files only,
 so ignored and secret files never left the source). Every file was hashed before and after
@@ -12,7 +12,7 @@ compared. The sources were only read.
 | Target | Files before | Changed | Deleted | Created | CREATE | PROPOSE | REUSE | Git state same | Only untracked additions | Verdict |
 |---|---|---|---|---|---|---|---|---|---|---|
 | CHRYSOS | 1858 | 0 | 0 | 17 | 13 | 2 | 8 | True | True | PASS |
-| SUBSTRATE | 3640 | 0 | 0 | 22 | 19 | 0 | 4 | True | True | PASS |
+| SUBSTRATE | 3637 | 0 | 0 | 22 | 19 | 0 | 4 | True | True | PASS |
 | MIDAS | 166 | 0 | 0 | 24 | 21 | 0 | 1 | True | True | PASS |
 | CSAW_REPO | 63 | 0 | 0 | 25 | 21 | 1 | 0 | True | True | PASS |
 

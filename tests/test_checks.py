@@ -89,6 +89,53 @@ class Gates(unittest.TestCase):
                 ran = run("gates", "run", "--file", p, cwd=d)
                 self.assertNotIn("Traceback", ran.stderr)
 
+    HANG = 'python -c "import time; print(21); time.sleep(60)"'
+
+    def test_C8_a_gate_that_hangs_times_out_and_the_run_continues(self):
+        # R-19: TimeoutExpired was not caught, so a hanging gate ended the run with a traceback and the
+        # gates after it were never run or reported.
+        with tempdir() as d:
+            p = self.write(d, f'[[gate]]\nid = "H1"\npurpose = "p"\nkind = "automated"\nrun = \'{self.HANG}\'\n'
+                              f'pass = "exit 0"\ncontrol = \'{self.DETECTS}\'\ncontrol_expect = \'^21$\'\ntimeout = 2\n'
+                              f'\n[[gate]]\nid = "G2"\npurpose = "p"\nkind = "automated"\nrun = \'{self.OK}\'\n'
+                              f'pass = "exit 0"\ncontrol = \'{self.DETECTS}\'\ncontrol_expect = \'^21$\'\n')
+            r = run("gates", "run", "--file", p, cwd=d, timeout=120)
+            self.assertEqual(r.returncode, 1, r.stdout)
+            self.assertNotIn("Traceback", r.stderr)
+            self.assertRegex(r.stdout, r"H1\s+TIMEOUT after 2s")
+            self.assertRegex(r.stdout, r"G2\s+PASS", "the gate after the hanging one was not run")
+            log = next(pathlib.Path(d).rglob("H1.log")).read_text(encoding="utf-8")
+            self.assertIn("21", log, "the partial output of the timed-out gate was not kept")
+
+    def test_C8_a_control_that_hangs_is_not_proof(self):
+        with tempdir() as d:
+            p = self.write(d, f'[[gate]]\nid = "H1"\npurpose = "p"\nkind = "automated"\nrun = \'{self.OK}\'\n'
+                              f'pass = "exit 0"\ncontrol = \'{self.HANG}\'\ncontrol_expect = \'^21$\'\ntimeout = 2\n')
+            r = run("gates", "run", "--controls", "--file", p, cwd=d, timeout=120)
+            self.assertEqual(r.returncode, 1, r.stdout)
+            self.assertIn("TIMEOUT", r.stdout)
+
+    def test_C8_validate_requires_a_positive_numeric_timeout(self):
+        for bad in ('"60"', "0", "-5", "true"):
+            with self.subTest(timeout=bad), tempdir() as d:
+                p = self.write(d, f'[[gate]]\nid = "G1"\npurpose = "p"\nkind = "automated"\nrun = \'{self.OK}\'\n'
+                                  f'pass = "exit 0"\ncontrol = \'{self.DETECTS}\'\ncontrol_expect = \'^21$\'\n'
+                                  f'timeout = {bad}\n')
+                r = run("gates", "validate", "--file", p)
+                self.assertEqual(r.returncode, 1, r.stdout)
+                self.assertIn("timeout", r.stdout)
+
+    def test_C8_two_runs_at_once_keep_separate_logs(self):
+        import subprocess as sp
+        from helpers import SCRIPT
+        with tempdir() as d:
+            p = self.gate(d, self.DETECTS)
+            procs = [sp.Popen([sys.executable, str(SCRIPT), "gates", "run", "--file", str(p)], cwd=d,
+                              stdout=sp.PIPE, text=True) for _ in range(2)]
+            outs = [pr.communicate(timeout=120)[0] for pr in procs]
+            logs = [re.search(r"log: (\S+)", o).group(1) for o in outs]
+            self.assertNotEqual(logs[0], logs[1], "two runs wrote the same log file")
+
     def test_C8_only_must_select_real_automated_gates(self):
         # R-16: --only with a typo selected nothing and reported "OK (0 failing)".
         with tempdir() as d:

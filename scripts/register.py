@@ -78,6 +78,9 @@ def register_problems(rows, root: pathlib.Path, release=False, today=None):
             test = re.split(r"::|#", row.get("test", ""))[0].strip()
             if not test:
                 problems.append(f"{rid}: CLOSED without a regression test")
+            elif not (root.resolve() / test).resolve().is_relative_to(root.resolve()):
+                # R-24: a path that climbs out of the repo found a file elsewhere and counted.
+                problems.append(f"{rid}: regression test {test} is outside the repository")
             elif not (root / test).exists():
                 problems.append(f"{rid}: regression test not found: {test}")
             if not re.match(r"(?i)^(gate|rule|adr|bug-class|none):\s*\S", follow):

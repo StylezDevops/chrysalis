@@ -2,15 +2,36 @@
 
 from __future__ import annotations
 
+import datetime as dt
 import os
 import pathlib
 import re
+import signal
 import subprocess
 import tomllib
 
 from common import ROOT, sabotaged
 
 GATE_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]{0,31}")
+
+
+DEFAULT_TIMEOUT = 3600
+
+
+def run_command(cmd: str, env: dict, out, timeout: float) -> int | None:
+    """Run a gate command through the shell; its exit code, or None if it ran past `timeout`. On a
+    timeout the whole process tree is killed, not only the shell, so nothing keeps running."""
+    kw = {"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP} if os.name == "nt" else {"start_new_session": True}
+    proc = subprocess.Popen(cmd, shell=True, env=env, stdout=out, stderr=subprocess.STDOUT, **kw)
+    try:
+        return proc.wait(timeout=timeout)
+    except subprocess.TimeoutExpired:
+        if os.name == "nt":
+            subprocess.run(["taskkill", "/T", "/F", "/PID", str(proc.pid)], capture_output=True)
+        else:
+            os.killpg(proc.pid, signal.SIGKILL)
+        proc.wait()
+        return None
 
 
 def expand_home(cmd: str, home: str) -> str:
@@ -27,6 +48,9 @@ def load_gates(path: pathlib.Path):
         return None, [f"cannot read {path}: {e}"]
     gates = data.get("gate", [])
     problems, ids = [], set()
+    # R-25: `gate = 3` or a list of non-tables crashed the runner; the shape is checked first.
+    if not isinstance(gates, list) or not all(isinstance(g, dict) for g in gates):
+        return None, [f"{path}: gates must be [[gate]] tables, got {type(gates).__name__}"]
     if not gates:
         problems.append("no [[gate]] entries")
     for i, g in enumerate(gates, 1):
@@ -42,6 +66,10 @@ def load_gates(path: pathlib.Path):
         if not str(g.get("purpose", "")).strip():
             problems.append(f"{gid}: no purpose")
         kind = g.get("kind")
+        if "timeout" in g:
+            t = g["timeout"]
+            if isinstance(t, bool) or not isinstance(t, (int, float)) or t <= 0:
+                problems.append(f"{gid}: timeout must be a positive number of seconds, got {t!r}")
         if kind == "automated":
             if not str(g.get("run", "")).strip():
                 problems.append(f"{gid}: automated gate has no run command")
@@ -92,17 +120,25 @@ def cmd_gates(args) -> int:
         print("FAIL no automated gate selected; nothing would run")
         print("RESULT: FAIL (selection)")
         return 1
-    logs = pathlib.Path(".chrysalis") / "gates"
+    # Each run writes to its own folder, so two runs at once never share a log file.
+    stamp = dt.datetime.now(dt.timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
+    logs = pathlib.Path(".chrysalis") / "gates" / f"run-{stamp}-{os.getpid()}"
     logs.mkdir(parents=True, exist_ok=True)
     env = dict(os.environ)
     env["CHRYSALIS_HOME"] = env.get("CHRYSALIS_HOME") or str(ROOT)
+    env.setdefault("PYTHONUNBUFFERED", "1")  # what a Python gate printed survives a timeout kill
     failed = 0
     for g in automated:
         cmd = expand_home(g["control"] if args.controls else g["run"], env["CHRYSALIS_HOME"])
         log = logs / f"{g['id']}{'-control' if args.controls else ''}.log"
+        limit = g.get("timeout", DEFAULT_TIMEOUT)
         with open(log, "w", encoding="utf-8") as fh:
-            code = subprocess.run(cmd, shell=True, env=env, stdout=fh, stderr=subprocess.STDOUT,
-                                  timeout=g.get("timeout", 3600)).returncode
+            code = run_command(cmd, env, fh, limit)
+        if code is None:
+            # R-19: a hang is this gate's failure, recorded with its partial output; the run goes on.
+            print(f"{g['id']:<6} {f'TIMEOUT after {limit}s':<36} log: {log.as_posix()}")
+            failed += 1
+            continue
         if args.controls:
             # Red only when the control failed AND its output carries the gate's own finding for the
             # planted defect. A crash or an unrelated failure is not proof that the gate can see it.

@@ -136,6 +136,42 @@ class Worktrees(unittest.TestCase):
         self.assertTrue((self.repo / "src" / "keep.txt").exists())
         self.assertTrue((self.wt_root / "job7").exists(), "the worktree was removed before the refusal")
 
+    def test_C12_finish_completes_a_cleanup_that_was_interrupted(self):
+        # A finish stopped after the worktree went but before the branch and build folder did: a rerun
+        # must finish the job, not fail on "no worktree" and leave the rest behind.
+        self.assertEqual(self.wt("new", "job9").returncode, 0)
+        self.commit_in(self.wt_root / "job9", "g.txt")
+        self.merge("agent/job9")
+        build = self.base / "build-job9"
+        build.mkdir()
+        git(self.repo, "worktree", "remove", str(self.wt_root / "job9"))
+        r = self.wt("finish", "job9", "--build-dir", build)
+        self.assertEqual(r.returncode, 0, r.stdout)
+        self.assertNotIn("agent/job9", git(self.repo, "branch", "--list", "agent/job9"))
+        self.assertFalse(build.exists())
+        again = self.wt("finish", "job9")
+        self.assertEqual(again.returncode, 1, "a second finish with nothing left should say so")
+        self.assertIn("nothing to finish", again.stdout)
+
+    def test_C12_finish_refuses_a_symlink_as_the_build_dir(self):
+        # R-20: a link was resolved and its target deleted; a link given as the build folder is refused.
+        self.assertEqual(self.wt("new", "job8").returncode, 0)
+        self.commit_in(self.wt_root / "job8", "f.txt")
+        self.merge("agent/job8")
+        target = self.base / "precious"
+        target.mkdir()
+        (target / "keep.txt").write_text("k\n", encoding="utf-8")
+        link = self.base / "build-link"
+        try:
+            link.symlink_to(target, target_is_directory=True)
+        except (OSError, NotImplementedError) as e:
+            self.skipTest(f"this machine cannot create symlinks: {e}")
+        r = self.wt("finish", "job8", "--build-dir", link)
+        self.assertEqual(r.returncode, 1, r.stdout)
+        self.assertIn("symlink", r.stdout)
+        self.assertTrue((target / "keep.txt").exists(), "the link's target was deleted")
+        self.assertTrue((self.wt_root / "job8").exists(), "the worktree was removed before the refusal")
+
     def test_C12_sweep_removes_merged_agent_leftovers_and_keeps_the_rest(self):
         # merged, with a worktree (this tool's naming)
         self.assertEqual(self.wt("new", "done").returncode, 0)

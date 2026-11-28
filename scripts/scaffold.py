@@ -29,6 +29,7 @@ TARGETS = [
     ("docs/standards/ready-and-done.md", "ready-and-done.md", None, None),
     ("docs/standards/change-request.md", "change-request.md", None, "K1"),
     ("docs/standards/threat-model.md", "threat-model.md", None, "K4"),
+    ("docs/standards/infra-change.md", "infra-change.md", None, "K11"),
     ("docs/standards/fix-record.md", "fix-record.md", None, None),
     ("docs/standards/audit-record.md", "audit-record.md", None, None),
     ("docs/standards/change-notice.md", "change-notice.md", None, None),

@@ -1,15 +1,36 @@
 {
+  "schema_version": 1,
   "project": {
     "name": "csaw",
     "title": "CSAW",
     "description": "An audio effect plugin ported from a Python reference implementation.",
     "problem": "The plugin must match the Python reference output while running on a real-time audio thread.",
-    "users": ["music producers"],
-    "objectives": ["output matches the reference within a stated tolerance", "no glitches under host load"]
+    "users": [
+      "music producers"
+    ],
+    "objectives": [
+      "output matches the reference within a stated tolerance",
+      "no glitches under host load"
+    ]
   },
   "stage": "new",
-  "repo": {"existing": false, "default_branch": "main"},
-  "stack": {"languages": ["c++", "python"], "frameworks": ["JUCE"], "platforms": ["desktop", "plugin"]},
+  "repo": {
+    "existing": false,
+    "default_branch": "main"
+  },
+  "stack": {
+    "languages": [
+      "c++",
+      "python"
+    ],
+    "frameworks": [
+      "JUCE"
+    ],
+    "platforms": [
+      "desktop",
+      "plugin"
+    ]
+  },
   "risk": {
     "live_production": false,
     "handles_money": false,
@@ -17,8 +38,14 @@
     "auth": false,
     "realtime": true,
     "client_engagement": false,
-    "mutates_data": false
+    "mutates_data": false,
+    "infrastructure": false
   },
-  "ci": {"remote": "on-request", "local_gate": "python tools/run_gates.py"},
-  "agents": {"max_parallel_agents": 2}
+  "ci": {
+    "remote": "on-request",
+    "local_gate": "python tools/run_gates.py"
+  },
+  "agents": {
+    "max_parallel_agents": 2
+  }
 }

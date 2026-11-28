@@ -84,9 +84,9 @@ def run_suite(name, sabotage=None):
         if sabotage and sabotage not in ("hooks-allow-all", "lusser-no-ambiguity"):
             env["CHRYSALIS_SABOTAGE"] = sabotage
         if name == "chrysalis":
-            return run_unittest("tests.test_chrysalis tests.test_checks tests.test_worktrees", env, log)
+            return run_unittest("tests.test_chrysalis tests.test_checks tests.test_worktrees tests.test_boundaries", env, log)
         if name == "governance":
-            return run_unittest("tests.test_governance tests.test_generated_ci", env, log)
+            return run_unittest("tests.test_governance tests.test_generated_ci tests.test_config_model", env, log)
         if name == "evidence":
             return run_unittest("tests.test_evidence_real", env, log)
         if name == "lusser":

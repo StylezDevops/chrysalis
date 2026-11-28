@@ -7,8 +7,9 @@ import re
 
 import proportion
 
-from common import AGENT_FILE_LIMIT, GUARDRAILS, METHOD, PROPORTION, ROOT, TEMPLATES, sabotaged, split_row
-from rules import Condition, grades, parse_method
+from common import AGENT_FILE_LIMIT, GUARDRAILS, METHOD, PACKS, PROPORTION, ROOT, TEMPLATES, sabotaged, split_row
+from project_config import migration_gaps
+from rules import Condition, grades, parse_method, rules_text
 
 SOURCE_DIRS = ("scripts", "hooks", "tests", "skills")
 SOURCE_LINE_LIMIT = 500  # U9: a source file over about 500 lines is a defect (R-12)
@@ -31,6 +32,7 @@ def house_style(text: str) -> str:
 def cmd_check(args) -> int:
     method_path = pathlib.Path(args.method) if args.method else METHOD
     text = method_path.read_text(encoding="utf-8-sig")
+    packs_text = PACKS.read_text(encoding="utf-8-sig") if PACKS.exists() else ""
     problems = []
     sections = re.split(r"(?m)^### ", text)
     for sec in sections[1:]:
@@ -38,7 +40,7 @@ def cmd_check(args) -> int:
         if m and not re.search(r"(?m)^Evidence: \S", sec) and "INFERRED" not in sec \
                 and not sabotaged("check-ignores-evidence"):
             problems.append(f"{m.group(1)}: no Evidence line and not marked INFERRED")
-    for line in text.splitlines():
+    for line in rules_text(text).splitlines():
         m = re.match(r"^\|\s*(K\d+)\s*\|(.*)\|\s*$", line)
         if m:
             cells = split_row(line)[1:]
@@ -48,11 +50,12 @@ def cmd_check(args) -> int:
                 Condition(cells[0].replace("`", ""))
             except ValueError as e:
                 problems.append(f"{m.group(1)}: {e}")
-    universal, conditional = parse_method(text)
+    universal, conditional = parse_method(rules_text(text))
     prop_path = pathlib.Path(args.proportion) if args.proportion else PROPORTION
     prop_text = prop_path.read_text(encoding="utf-8-sig")
     problems += proportion.grade_problems(grades(prop_text), [r for r, _ in universal])
-    for name, body in ((method_path.name, text), (prop_path.name, prop_text)):
+    problems += migration_gaps()
+    for name, body in ((method_path.name, text), (prop_path.name, prop_text), (PACKS.name, packs_text)):
         size = len(body.replace("\r\n", "\n").encode("utf-8"))
         if size > AGENT_FILE_LIMIT:
             problems.append(f"{name} is {size} bytes, over the {AGENT_FILE_LIMIT}-byte limit for a file "

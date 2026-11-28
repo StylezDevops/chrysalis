@@ -18,6 +18,7 @@ from helpers import DELETE, ROOT, git, make_git_repo, run, tempdir, tree_hashes,
 REQUIRED = ["project__name", "project__description", "project__problem", "project__users", "stage",
             "repo__existing", "stack__languages", "risk__live_production", "risk__handles_money",
             "risk__handles_personal_data", "risk__auth", "risk__realtime", "risk__client_engagement", "risk__mutates_data",
+            "risk__infrastructure", "schema_version",
             "ci__remote", "agents__max_parallel_agents"]
 
 
@@ -98,7 +99,7 @@ class Validation(unittest.TestCase):
 
 # ------------------------------------------------------------------ C2 rule selection
 FLAGS = ["live_production", "handles_money", "handles_personal_data", "auth", "realtime",
-         "client_engagement", "mutates_data"]
+         "client_engagement", "mutates_data", "infrastructure"]
 
 
 def reference_selection(cfg) -> set:
@@ -121,6 +122,10 @@ def reference_selection(cfg) -> set:
         out.add("K8")
     if r["mutates_data"]:
         out.add("K10")
+    if r["infrastructure"]:
+        out.add("K11")
+    if r["mutates_data"] or r["live_production"]:
+        out.add("K12")
     return out
 
 
@@ -161,7 +166,7 @@ class Rules(unittest.TestCase):
         r = run("rules", "--list-conditions")
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
         ids = re.findall(r"(?m)^(K\d+)\s", r.stdout)
-        self.assertEqual(ids, [f"K{n}" for n in range(1, 11)])
+        self.assertEqual(ids, [f"K{n}" for n in range(1, 13)])
 
     def test_C2_a_flag_that_is_not_a_bool_is_refused_not_read_as_true(self):
         sys.path.insert(0, str(ROOT / "scripts"))

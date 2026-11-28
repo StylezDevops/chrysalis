@@ -45,7 +45,21 @@ jobs:
         run: python tests/run_all.py | tee -a "$GITHUB_STEP_SUMMARY"
       - name: Gate logs
         if: failure()
-        run: for f in .chrysalis/gates/*.log .ci-local/*.log; do echo "=== $f"; cat "$f"; done
+        run: for f in .chrysalis/gates/*/*.log .ci-local/*.log; do echo "=== $f"; cat "$f"; done
+
+  infra:
+    name: Infrastructure simulation (Docker)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5
+        with:
+          python-version: "3.13"
+      - name: Gate I1 and its control (K11, K12 on Kubernetes, Terraform, Bicep, ARM, Dockerfile, Postgres)
+        run: python scripts/chrysalis.py gates run --only I1 && python scripts/chrysalis.py gates run --controls --only I1
+      - name: Gate logs
+        if: failure()
+        run: for f in .chrysalis/gates/*/*.log; do echo "=== $f"; cat "$f"; done
 
   quickstart:
     name: README quick start on an empty project

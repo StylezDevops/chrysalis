@@ -1,15 +1,33 @@
 {
+  "schema_version": 1,
   "project": {
     "name": "chrysalis",
     "title": "Chrysalis",
     "description": "An engineering method for AI-assisted software work, and the stdlib Python tools that set a project up on it and check it stays there.",
     "problem": "Agents certify their own work; the method makes every claim carry evidence a machine or a person can check.",
-    "users": ["developers and teams who build software with coding agents"],
-    "objectives": ["apply never damages an existing repository", "every gate can be shown to fail", "Chrysalis passes its own doctor"]
+    "users": [
+      "developers and teams who build software with coding agents"
+    ],
+    "objectives": [
+      "apply never damages an existing repository",
+      "every gate can be shown to fail",
+      "Chrysalis passes its own doctor"
+    ]
   },
   "stage": "pre-release",
-  "repo": {"existing": true, "default_branch": "main"},
-  "stack": {"languages": ["python"], "frameworks": [], "platforms": ["cli"]},
+  "repo": {
+    "existing": true,
+    "default_branch": "main"
+  },
+  "stack": {
+    "languages": [
+      "python"
+    ],
+    "frameworks": [],
+    "platforms": [
+      "cli"
+    ]
+  },
   "risk": {
     "live_production": false,
     "handles_money": false,
@@ -17,15 +35,29 @@
     "auth": false,
     "realtime": false,
     "client_engagement": false,
-    "mutates_data": false
+    "mutates_data": false,
+    "infrastructure": false
   },
-  "ci": {"remote": "every-push", "local_gate": "python scripts/chrysalis.py gates run"},
-  "agents": {"max_parallel_agents": 4},
+  "ci": {
+    "remote": "every-push",
+    "local_gate": "python scripts/chrysalis.py gates run"
+  },
+  "agents": {
+    "max_parallel_agents": 4
+  },
   "change": {
-    "critical_paths": ["METHOD.md", "PROPORTION.md", "scripts/*.py", "skills/lusser/scripts/lusser.py"],
+    "critical_paths": [
+      "METHOD.md",
+      "PROPORTION.md",
+      "scripts/*.py",
+      "skills/lusser/scripts/lusser.py"
+    ],
     "small_lines": 20
   },
   "markers": {
-    "exempt": ["hooks/block_deferral_markers.py", "hooks/test_block_deferral_markers.py"]
+    "exempt": [
+      "hooks/block_deferral_markers.py",
+      "hooks/test_block_deferral_markers.py"
+    ]
   }
 }

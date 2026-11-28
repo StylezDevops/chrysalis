@@ -11,6 +11,7 @@ import subprocess
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 METHOD = ROOT / "METHOD.md"
 PROPORTION = ROOT / "PROPORTION.md"
+PACKS = ROOT / "PACKS.md"
 HOOKS = ROOT / "hooks"
 AGENT_FILE_LIMIT = 25 * 1024  # U9: an agent-facing file over about 25 KB is a defect
 TEMPLATES = ROOT / "templates"

@@ -52,3 +52,18 @@ executes it and no kind fits it. Tests and fixtures are checks, not parts.
 | 45 | framework.ref: the pin is a full commit or apply refuses | config | same review; no fallback to a moving branch | no |
 | 46 | every GitHub Action pinned to a commit SHA | config | same review | no |
 | 47 | hooks/block_unverified_install.py and the docs/dependencies.md template | module | the supply-chain check enforced, not only advised (A23) | no |
+| 48 | fix R-19: a gate that hangs times out as its own failure, keeps its output, and the run goes on | rework | found by review (A24) | no |
+| 49 | fix R-20: a symlink given as the build folder is refused | rework | same review | no |
+| 50 | fix R-21: the install guard reads nested shells and refuses an encoded command | rework | same review | no |
+| 51 | fix R-22: manifests read by format-aware parsers, dependency sections only | rework | same review | no |
+| 52 | fix R-24: a register test path outside the repo does not count | rework | found by the boundary tests | no |
+| 53 | fix R-25: a gates file of the wrong shape is refused, not crashed on | rework | found by the boundary tests | no |
+| 54 | fix R-26: worktree finish resumes an interrupted cleanup | rework | found by the boundary review | no |
+| 55 | schema_version, four problem kinds, migrations and deprecations | schema-change | C19 (A24) | no |
+| 56 | chrysalis.py config migrate | interface | C19 | no |
+| 57 | chrysalis.py risk | interface | risk coverage for audit (A24) | no |
+| 58 | PACKS.md (K11, K12) and infrastructure files classified C2 | module | C20 | no |
+| 59 | tests/infra_sim.py, its fixtures, gate I1 and its CI job | module | C20; real-input simulation in Docker | no |
+| 60 | infra-change record template, infrastructure and stack gate examples | rework | C20 | no |
+| 61 | workflow permissions as a tested invariant, actionlint on both workflows | config | review (A24) | no |
+| 62 | config key risk.infrastructure | config | C20; selects K11 | no |

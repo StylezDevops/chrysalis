@@ -14,7 +14,7 @@ Rewritten at the end of every session (U12). Read it first.
 ## Where it stopped (2026-11-28)
 
 An outside review asked for proportion, honest deferral, wider enforcement and independence from
-Claude Code. All four went in (spec clauses C15 to C18, ambiguities A19 to A23, budget 47):
+Claude Code. All four went in (spec clauses C15 to C20, ambiguities A19 to A24, budget 62):
 
 - `PROPORTION.md`: rule grades, change classes C0 to C2, what enforces each rule, adaptations.
 - `classify`, `doctor`, `skills install`; register states SCHEDULED and ACCEPTED; `--release`.
@@ -43,6 +43,20 @@ Claude Code. All four went in (spec clauses C15 to C18, ambiguities A19 to A23, 
   framework pin is a full commit or apply refuses; every action is pinned to a SHA.
 - `hooks/block_unverified_install.py`: an install of a package no manifest declares needs a
   human-approved entry in `docs/dependencies.md`.
+
+- R-19 to R-26: gate timeouts are the gate's own failure and the run goes on; a symlinked build folder
+  is refused; the install guard reads nested shells and parses manifests by format; the simulation's
+  NetworkPolicy proof needs the admitted probe to work, a refused connection, and the policy shown as
+  the cause; register test paths stay inside the repo; a malformed gates file is refused; an
+  interrupted worktree finish can be completed.
+- C19: `schema_version`, four problem kinds, `config migrate`, and `check` failing on a missing
+  migration. C20: `PACKS.md` (K11 infrastructure, K12 migrations), `tests/infra_sim.py` (gate I1,
+  its own CI job), the infra-change record, and gate examples for Go, Rust, Java, .NET and IaC.
+- `chrysalis.py risk`: declared risks, their paths and coverage, recent commits by class.
+
+## Deferred, as decided on 2026-11-28
+
+- The architecture refactor (typed policy model, CLI only doing I/O), as a refactor of its own (U15).
 
 ## How changes land now
 

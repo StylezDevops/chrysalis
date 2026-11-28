@@ -21,10 +21,18 @@ WHAT IT ALLOWS. Installing what the manifests already declare (`npm install`, `n
 -r requirements.txt`, `pip install -e .`, a declared name), a local path (`./pkg`), and any package
 with a human-approved entry in `docs/dependencies.md`.
 
-WHAT IT DOES NOT CATCH: the registry check itself, which needs the network and judgement (the skill
-does that, and a person approves it); an install hidden in a script the command runs; a package
-manager it does not know; and edits to a manifest followed by a plain `npm install`, which a reviewer
-sees in the manifest's diff.
+It reads through `bash|sh|zsh -c`, `cmd /c`, `powershell|pwsh -Command`, `eval` and the prefixes
+`env`, `sudo`, `nohup`, `time`, `exec`, `nice`, to a depth of 4, and refuses an encoded PowerShell
+command it cannot read. Manifests are read with format-aware parsers (JSON, TOML, go.mod directives,
+csproj XML), and only their dependency sections count as a declaration.
+
+WHAT IT DOES NOT CATCH. It is an installation guard, not a supply-chain security boundary. It does
+not do the registry check itself, which needs the network and judgement (the skill does that, and a
+person approves it). It does not see an install inside a script, Makefile target, alias, shell
+function, command substitution (`$(...)`), `xargs` or any wrapper not listed above; a package manager
+it does not know; or a manifest edited and then installed with a plain `npm install`, which a
+reviewer sees in the manifest's diff. Lockfile integrity, registry provenance and dependency
+confusion need their own controls.
 """
 
 import json
@@ -32,6 +40,8 @@ import os
 import pathlib
 import re
 import shlex
+import tomllib
+import xml.etree.ElementTree as ET
 import sys
 
 TOOLS = {"Bash", "PowerShell"}
@@ -103,38 +113,125 @@ def name_of(spec: str, ecosystem: str) -> str:
 
 
 def declared(root: pathlib.Path, ecosystem: str, name: str) -> bool:
-    def text(rel):
+    """Whether a manifest declares `name` as a dependency. Each manifest is read with a parser for its
+    format, and only its dependency sections count (R-22): a name that appears elsewhere in the file (a
+    tool setting, a feature, a comment, a replace directive) is not a declaration. Anything that cannot
+    be parsed counts as not declared, so a broken manifest refuses rather than allows."""
+    return name in DECLARED_BY.get(ecosystem, lambda _root: set())(root)
+
+
+def _text(root: pathlib.Path, rel: str) -> str:
+    try:
+        return (root / rel).read_text(encoding="utf-8-sig", errors="replace")
+    except OSError:
+        return ""
+
+
+def _toml(root: pathlib.Path, rel: str) -> dict:
+    try:
+        return tomllib.loads(_text(root, rel)) if (root / rel).is_file() else {}
+    except tomllib.TOMLDecodeError:
+        return {}
+
+
+def _json(root: pathlib.Path, rel: str) -> dict:
+    try:
+        data = json.loads(_text(root, rel) or "{}")
+    except json.JSONDecodeError:
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def _pep(name: str) -> str:
+    return re.sub(r"[-_.]+", "-", name).lower()
+
+
+def _req_name(line: str) -> str | None:
+    line = line.split("#", 1)[0].strip()
+    if not line or line.startswith("-"):
+        return None
+    m = re.match(r"^([A-Za-z0-9][A-Za-z0-9._-]*)", line)
+    return _pep(m.group(1)) if m else None
+
+
+def npm_declared(root: pathlib.Path) -> set:
+    pkg = _json(root, "package.json")
+    keys = ("dependencies", "devDependencies", "peerDependencies", "optionalDependencies")
+    return {k.lower() for s in keys if isinstance(pkg.get(s), dict) for k in pkg[s]}
+
+
+def python_declared(root: pathlib.Path) -> set:
+    names = set()
+    for req in root.glob("requirements*.txt"):
+        names |= {n for n in map(_req_name, _text(root, req.name).splitlines()) if n}
+    py = _toml(root, "pyproject.toml")
+    project = py.get("project") or {}
+    specs = list(project.get("dependencies") or [])
+    for group in (project.get("optional-dependencies") or {}).values():
+        specs += list(group or [])
+    for group in (py.get("dependency-groups") or {}).values():
+        specs += [s for s in group or [] if isinstance(s, str)]
+    tool = py.get("tool") or {}
+    specs += list((tool.get("uv") or {}).get("dev-dependencies") or [])
+    names |= {n for n in map(_req_name, (s for s in specs if isinstance(s, str))) if n}
+    poetry = tool.get("poetry") or {}
+    tables = [poetry.get("dependencies") or {}, poetry.get("dev-dependencies") or {}]
+    tables += [(g or {}).get("dependencies") or {} for g in (poetry.get("group") or {}).values()]
+    names |= {_pep(k) for t in tables for k in t if k.lower() != "python"}
+    return names
+
+
+def rust_declared(root: pathlib.Path) -> set:
+    cargo = _toml(root, "Cargo.toml")
+    sections = ("dependencies", "dev-dependencies", "build-dependencies")
+    tables = [cargo.get(s) or {} for s in sections]
+    tables += [(t or {}).get(s) or {} for t in (cargo.get("target") or {}).values() for s in sections]
+    tables.append((cargo.get("workspace") or {}).get("dependencies") or {})
+    return {k.lower() for t in tables for k in t}
+
+
+def go_declared(root: pathlib.Path) -> set:
+    names, block = set(), False
+    for raw in _text(root, "go.mod").splitlines():
+        line = raw.split("//", 1)[0].strip()
+        if block:
+            if line == ")":
+                block = False
+            elif line:
+                names.add(line.split()[0].lower())
+        elif line == "require (":
+            block = True
+        elif line.startswith("require "):
+            names.add(line.split()[1].lower())
+    return names
+
+
+def ruby_declared(root: pathlib.Path) -> set:
+    return {m.lower() for m in re.findall(r"""(?m)^\s*gem\s+["']([^"']+)["']""", _text(root, "Gemfile"))}
+
+
+def php_declared(root: pathlib.Path) -> set:
+    c = _json(root, "composer.json")
+    return {k.lower() for s in ("require", "require-dev") if isinstance(c.get(s), dict) for k in c[s]}
+
+
+def dotnet_declared(root: pathlib.Path) -> set:
+    names = set()
+    for proj in root.glob("*.csproj"):
         try:
-            return (root / rel).read_text(encoding="utf-8-sig", errors="replace")
-        except OSError:
-            return ""
-    if ecosystem == "npm":
-        try:
-            pkg = json.loads(text("package.json") or "{}")
-        except json.JSONDecodeError:
-            return False
-        keys = ("dependencies", "devDependencies", "peerDependencies", "optionalDependencies")
-        return any(name in {k.lower() for k in (pkg.get(s) or {})} for s in keys)
-    if ecosystem == "python":
-        reqs = "\n".join(text(p.name) for p in root.glob("requirements*.txt")) + "\n" + text("pyproject.toml")
-        names = {re.sub(r"[-_.]+", "-", m).lower() for m in re.findall(r"(?m)^\s*[\"']?([A-Za-z0-9][\w.-]*)", reqs)}
-        return name in names
-    if ecosystem == "rust":
-        return re.search(rf"(?m)^\s*{re.escape(name)}\s*=", text("Cargo.toml")) is not None
-    if ecosystem == "go":
-        return re.search(rf"(?m)^\s*(require\s+)?{re.escape(name)}\s", text("go.mod")) is not None
-    if ecosystem == "ruby":
-        return re.search(rf"""gem\s+["']{re.escape(name)}["']""", text("Gemfile")) is not None
-    if ecosystem == "php":
-        try:
-            req = json.loads(text("composer.json") or "{}")
-        except json.JSONDecodeError:
-            return False
-        return name in {k.lower() for k in {**(req.get("require") or {}), **(req.get("require-dev") or {})}}
-    if ecosystem == "dotnet":
-        return any(re.search(rf'Include="{re.escape(name)}"', p.read_text(encoding="utf-8", errors="replace"), re.I)
-                   for p in root.glob("*.csproj"))
-    return False
+            tree = ET.fromstring(_text(root, proj.name))
+        except ET.ParseError:
+            continue
+        for el in tree.iter():
+            if el.tag.rsplit("}", 1)[-1] == "PackageReference":
+                ref = el.get("Include") or el.get("Update")
+                if ref:
+                    names.add(ref.lower())
+    return names
+
+
+DECLARED_BY = {"npm": npm_declared, "python": python_declared, "rust": rust_declared, "go": go_declared,
+               "ruby": ruby_declared, "php": php_declared, "dotnet": dotnet_declared}
 
 
 def verified(root: pathlib.Path, name: str) -> bool:
@@ -150,13 +247,57 @@ def verified(root: pathlib.Path, name: str) -> bool:
     return False
 
 
-def offending(command: str, root: pathlib.Path) -> str | None:
-    """The first package an install command would add without a declaration or a verified entry."""
-    for segment in re.split(r"&&|\|\||[;|\n]", command):
-        try:
-            tokens = shlex.split(segment, posix=True)
-        except ValueError:
-            tokens = segment.split()
+SHELLS = {"bash", "sh", "zsh", "dash", "ksh", "fish"}
+PREFIXES = {"sudo", "command", "nohup", "time", "exec", "nice", "env"}
+
+
+def unwrap(tokens: list[str]) -> tuple[str | None, list[str]]:
+    """(inner command text, rest) when the tokens run another command through a shell or wrapper
+    (R-21), else (None, tokens) with wrapper words and VAR=value settings stripped."""
+    t = list(tokens)
+    while t and (re.fullmatch(r"\w+=.*", t[0]) or pathlib.PurePath(t[0]).name.lower() in PREFIXES):
+        t = t[1:]
+    if not t:
+        return None, t
+    head = pathlib.PurePath(t[0]).name.lower().removesuffix(".exe")
+    lowered = [a.lower() for a in t[1:]]
+    if head in SHELLS and "-c" in t[1:]:
+        i = t.index("-c")
+        return (t[i + 1] if i + 1 < len(t) else ""), []
+    if head == "cmd" and ({"/c", "/k"} & set(lowered)):
+        i = next(n for n, a in enumerate(lowered, 1) if a in ("/c", "/k"))
+        return " ".join(t[i + 1:]), []
+    if head in ("powershell", "pwsh"):
+        for flag in ("-encodedcommand", "-enc", "-e", "-ec"):
+            if flag in lowered:
+                return ENCODED, []
+        for flag in ("-command", "-c"):
+            if flag in lowered:
+                i = lowered.index(flag) + 1
+                return " ".join(t[i + 1:]), []
+    if head == "eval":
+        return " ".join(t[1:]), []
+    return None, t
+
+
+ENCODED = "\0encoded"
+
+
+def offending(command: str, root: pathlib.Path, depth: int = 0) -> str | None:
+    """The first package an install command would add without a declaration or a verified entry.
+    Commands run through bash -c, sh -c, cmd /c, powershell -Command and eval are read too, to a
+    depth of 4; an encoded PowerShell command cannot be read, so it is refused."""
+    if depth > 4:
+        return "<command nested too deeply to read>"
+    for tokens in simple_commands(command):
+        inner, tokens = unwrap(tokens)
+        if inner == ENCODED:
+            return "<an encoded PowerShell command, which cannot be checked>"
+        if inner is not None:
+            hit = offending(inner, root, depth + 1)
+            if hit:
+                return hit
+            continue
         found = installer(tokens)
         if not found:
             continue
@@ -166,6 +307,28 @@ def offending(command: str, root: pathlib.Path) -> str | None:
             if not declared(root, ecosystem, name) and not verified(root, name):
                 return spec
     return None
+
+
+def simple_commands(command: str) -> list[list[str]]:
+    """The command split into simple commands at ;, &&, || and |, by a lexer that respects quotes, so
+    an operator inside a quoted argument (bash -c "cd web && npm install x") stays in that argument."""
+    lex = shlex.shlex(command.replace("\n", " ; "), posix=True, punctuation_chars=";&|")
+    lex.whitespace_split = True
+    try:
+        tokens = list(lex)
+    except ValueError:
+        tokens = command.split()
+    groups, current = [], []
+    for tok in tokens:
+        if tok and set(tok) <= set(";&|"):
+            if current:
+                groups.append(current)
+            current = []
+        else:
+            current.append(tok)
+    if current:
+        groups.append(current)
+    return groups
 
 
 REASON = """Refused: `{spec}` is not declared in this project's manifests and has no verified entry in

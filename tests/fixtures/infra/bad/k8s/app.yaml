@@ -1,0 +1,22 @@
+# Planted defects. Each policy in tests/infra_sim.py must name its finding ID for one of them:
+# a privileged container, privilege escalation, running as root, no limits, a floating :latest tag.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+  namespace: sim
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: web}
+  template:
+    metadata:
+      labels: {app: web}
+    spec:
+      containers:
+        - name: web
+          image: python:latest
+          securityContext:
+            privileged: true
+            allowPrivilegeEscalation: true
+            runAsUser: 0

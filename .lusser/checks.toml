@@ -214,3 +214,27 @@ clause = "C18"
 kind   = "real-input"
 ref    = "tests/precommit_real.sh"
 note   = "runs the hook through the real pre-commit framework (pre-commit try-repo) in CI"
+
+[[check]]
+clause = "C19"
+kind   = "spec-test"
+ref    = "tests/test_config_model.py"
+note   = "Kinds, Versions: each kind, migration through two versions, a raised version with no migration"
+
+[[check]]
+clause = "C19"
+kind   = "property"
+ref    = "tests/test_config_model.py"
+note   = "test_C19_a_version_raised_without_a_migration_fails_the_self_check holds for any version above 1"
+
+[[check]]
+clause = "C20"
+kind   = "real-input"
+ref    = "tests/infra_sim.py"
+note   = "gate I1: real checkov, kubeconform, hadolint, terraform, az bicep, k3s and Postgres in Docker"
+
+[[check]]
+clause = "C20"
+kind   = "spec-test"
+ref    = "tests/test_chrysalis.py"
+note   = "the differential test selects K11 and K12 from config; classify tests raise infrastructure files to C2"

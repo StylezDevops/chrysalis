@@ -4,8 +4,8 @@ Each rule has an ID. Project files cite the ID; they do not copy the text. Evide
 in `docs/discovery.md`. A rule marked INFERRED was read off practice, not found written down.
 
 Universal rules (U) apply to every project. Conditional rules (K) apply when their condition holds;
-`chrysalis.py rules` selects them from `config_project.json`. Project-specific rules live in the
-project, not here.
+`chrysalis.py rules` selects them from `config_project.json`; the control packs for infrastructure and
+migrations (K11, K12) are in `PACKS.md`. Project-specific rules live in the project, not here.
 
 General code-writing guardrails (reuse before building, verify before trusting, security baseline,
 editing discipline) live in `~/.claude/engineering-guardrails.md`. `chrysalis.py apply` installs a
@@ -263,7 +263,8 @@ Worktree procedure:
    only.
 5. After merging, the main session runs `git status --porcelain` and `git diff --exit-code` on its own
    checkout, then removes the worktree, its branch and its build directory with
-   `chrysalis.py worktree finish NAME --build-dir DIR`.
+   `chrysalis.py worktree finish NAME --build-dir DIR`. DIR is deleted outright, so it must be a
+   disposable build folder; a symlink, the repo, the worktree or a folder inside them is refused.
 6. At the end of a session, `chrysalis.py worktree sweep` lists every merged agent branch
    (`agent/*`, `worktree-agent-*`) and its worktree; `--apply` removes them. Unmerged or dirty ones stay.
 

@@ -78,11 +78,12 @@ ambiguity in the spec before building, and ties every spec clause to a check.
 | Path | What it is |
 |---|---|
 | `METHOD.md` | The rules. 21 universal (U1 to U21) and 10 conditional (K1 to K10), each with its evidence. |
+| `PACKS.md` | Control packs: K11 for infrastructure changes (Terraform, Bicep, ARM, Kubernetes, containers, network, identity, secrets) and K12 for schema migrations, each with its evidence. |
 | `PROPORTION.md` | Each rule's grade, the change classes, what each class asks for, what enforces each rule, and how a project adapts one. |
 | `docs/discovery.md` | How the rules were found: which projects, which files, what was inferred. |
 | `docs/pilot.md` | How a team pilots the method and measures its overhead before adopting it. |
 | `config/` | `config_project.json` fields and a filled example. |
-| `scripts/` | The tool, `chrysalis.py`: validate, rules, inspect, plan, apply, classify, doctor, gates, register check, worktree (new, finish, sweep), skills install, check. One module per command, none over 500 lines. Standard library only. |
+| `scripts/` | The tool, `chrysalis.py`: validate, config migrate, rules, inspect, plan, apply, classify, risk, doctor, gates, register check, worktree (new, finish, sweep), skills install, check. One module per command, none over 500 lines. Standard library only. |
 | `templates/` | What `apply` writes: AGENTS.md (with a CLAUDE.md that imports it), a CI workflow, initial.md, backlog, register, handover, ADR, Definition of Ready and Done, bug classes, names that do not exist, verification, fix, audit and change records, a pilot log, gates.toml and lusser files; plus a change request and runbook for live systems and a threat model where money, personal data or auth are involved. |
 | `skills/` | Agent skills: `chrysalis-init` plus 6 more (table below). |
 | `hooks/` | 5 hooks that refuse known mistakes (an unverified package install among them), an adapter (`check.py`) that runs them from any tool, and a git pre-commit form of the deferral-marker hook, each with tests. |
@@ -136,6 +137,13 @@ and exits 1 on any failure. On a project `apply` has just set up, only the lusse
 first spec is the human's to resolve. `apply` proposes `.github/workflows/chrysalis.yml`, which runs
 both commands on every pull request, pinned to the Chrysalis commit that generated it.
 
+`config_project.json` carries a `schema_version`. `validate` sorts each problem into one of four kinds:
+invalid and incomplete block, while dangerous (valid but risky, such as a live system with no remote CI)
+and deprecated are reported every time and do not. `chrysalis.py config migrate` moves an older config up
+one version at a time, a newer one is refused, and `check` fails if the version is ever raised without a
+migration. `chrysalis.py risk` shows each declared risk, the paths mapped to it, how many files they cover,
+and how recent commits split across C0, C1 and C2.
+
 On an existing repository, `apply`:
 
 - creates only files that are absent, using exclusive create;
@@ -178,6 +186,36 @@ What matters is the thinking behind the method. The agent does not mark its own 
 counts once it has been seen to fail. A defect becomes structure. A missing input stops the work. A
 claim needs evidence. Any tool that helps you hold to those is a good fit; one that gets in the way is
 not.
+
+## Infrastructure and migrations
+
+When `risk.infrastructure` is true, K11 holds: an infrastructure change is C2, and it leaves a record of
+eight steps (`docs/standards/infra-change.md`): the planned difference captured from the tool, validators
+and policy as code with each policy shown catching a planted violation by its finding ID, a security review
+of identity, network and secret changes, the blast radius, a human's approval, the deploy, verification
+against the running target, and a rollback that was performed, not described. `classify` treats Terraform,
+Bicep, ARM, Kubernetes, Helm and Dockerfiles as C2 whatever the config says. K12 tests a schema migration on
+the engine production runs: up, up again with no change, down, up.
+
+The rules came from defects in Substrate's Kubernetes configuration: an egress NetworkPolicy the code relied
+on that did not stop SSRF, a policy that refused no IPv6 range, and a fix left blocked because the manifests
+had only ever been read as data, never run against a controller.
+
+`tests/infra_sim.py` (gate I1) shows the packs hold on real tools, in Docker, with every image pinned by
+digest. Measured on 2026-11-28:
+
+| Stage | What it shows | Time |
+|---|---|---|
+| policy | checkov passes the good Kubernetes, Terraform, Bicep, ARM and Dockerfile fixtures, and names all 18 planted violations by ID | 43 to 119 s |
+| validate | kubeconform refuses a malformed manifest; hadolint flags the planted Dockerfile | 2 to 5 s |
+| plan | terraform init, validate and plan; the captured JSON plan shows the one planned change | 4 to 9 s |
+| bicep | az bicep build compiles both Bicep fixtures to ARM | 26 to 28 s |
+| deploy | a throwaway k3s cluster runs the service, a probe inside the cluster reaches it, the NetworkPolicy refuses a pod it does not admit, and removing the policy lets that pod through | 30 to 39 s |
+| rollback | a broken release fails its rollout, `rollout undo` restores the last one, and it answers again | 49 to 51 s |
+| migration | Postgres: up, up, down, up leaves the same schema; the planted non-idempotent migration fails its second run | 5 s |
+
+It does not deploy to a cloud: `terraform plan` against AWS and `az deployment what-if` need an account, so
+the simulation captures a plan from a provider that needs none and builds Bicep without deploying it.
 
 ## Using it in a team
 
@@ -269,19 +307,19 @@ measured on 2026-11-28, Windows 11, Python 3.14. Each line can be re-run with it
 
 | Check | Command | Result |
 |---|---|---|
-| Spec tests for clauses C1 to C14 | `python tests/run_all.py --only chrysalis` | 71 tests, all pass |
-| Spec tests for clauses C15 to C18 (proportion, fault states, doctor, portability) | `python tests/run_all.py --only governance` | 48 tests, all pass |
+| Spec tests for clauses C1 to C14, and boundary tests | `python tests/run_all.py --only chrysalis` | 86 tests, all pass |
+| Spec tests for clauses C15 to C19 (proportion, fault states, doctor, portability, config model) | `python tests/run_all.py --only governance` | 58 tests, all pass |
 | lusser tests | `python tests/run_all.py --only lusser` | 18 tests, all pass |
-| Hook tests | `python tests/run_all.py --only hooks` | 57 block and 51 allow cases, 0 wrong |
+| Hook tests | `python tests/run_all.py --only hooks` | 72 block and 58 allow cases, 0 wrong |
 | Evidence: cited files exist and hold their quotes | `python tests/run_all.py --only evidence` | 3 tests, all pass |
 | Each of 20 deliberate defects is caught by a test naming its clause | `python tests/run_all.py --sweep` | 20 of 20 caught |
-| `apply` on copies of 4 real repositories and 1 new project | `python tests/validate_real.py` | 0 files changed or deleted across 5,727; all 5 pass; see `docs/validation.md` |
-| 8 automated gates, including D1: this repo passes its own `doctor --release` | `python scripts/chrysalis.py gates run` | 8 pass |
-| Every gate's control goes red, and its output shows the gate's own finding for the planted defect | `python scripts/chrysalis.py gates run --controls` | 8 of 8 red, each for the right reason |
+| `apply` on copies of 4 real repositories and 1 new project | `python tests/validate_real.py` | 0 files changed or deleted across 5,724; all 5 pass; see `docs/validation.md` |
+| 9 automated gates, including D1 (this repo passes its own `doctor --release`) and I1 (the infrastructure simulation) | `python scripts/chrysalis.py gates run` | 9 pass |
+| Every gate's control goes red, and its output shows the gate's own finding for the planted defect | `python scripts/chrysalis.py gates run --controls` | 9 of 9 red, each for the right reason |
 | Spec coverage and part budget | `python skills/lusser/scripts/lusser.py check` | OK; 18 clauses covered, 36 of 36 parts |
 | The deferral hook through the real pre-commit framework | `bash tests/precommit_real.sh` | refuses an uncited marker, allows a cited one (CI) |
 
-18 defects have been found in Chrysalis itself and fixed with regression tests: 3 by the
+26 defects have been found in Chrysalis itself and fixed with regression tests: 3 by the
 real-repository run; 2 where a byte-order mark written by PowerShell broke file reading; 2 by running
 the suites in a fresh clone before CI was added (a skipped test reported as a pass, and the validation
 crashing instead of skipping); 3 from an outside code review (worktrees ignoring the configured
@@ -294,13 +332,13 @@ going red, so every gate now declares the finding its control must show; and 5 f
 review: `worktree finish` would delete a build folder inside the repository, `.git` included; a gate with
 no id passed validation; a mistyped `--only` reported green; `apply` could write through a symlinked
 folder to outside the repository; and the sensitive risk flags did not reach the change classifier.
-They are in `docs/register.md` with their numbers.
+8 more came from a further review and the tests it led to: a hanging gate ended the run with a traceback; a symlinked build folder had its target deleted; the install guard missed nested shells and read manifests by regex; the infrastructure simulation's own NetworkPolicy proof was red for the wrong reason (DNS was not up); a register test path could climb out of the repository; a malformed gates file crashed; and an interrupted worktree cleanup could not be finished. They are in `docs/register.md` with their numbers.
 
 The real-repository validation and the evidence test read local copies of the source projects. Their
 paths are in a gitignored file, `tests/evidence_roots.local.json`. On another machine, CI included, the
 evidence suite prints "PASS, 2 of 3 skipped" and the validation exits 3 with "SKIPPED"; neither reports
 a plain pass. The last full run is in `docs/validation.md`: 4 real repositories
-and 1 new project, 5,727 files, 0 changed or deleted.
+and 1 new project, 5,724 files, 0 changed or deleted.
 
 ## Licence
 
@@ -321,6 +359,12 @@ MIT. See `LICENSE`.
   project's own executable config, like a Makefile, so Chrysalis is not a sandbox: run the gates of an
   untrusted contribution (a fork's pull request) only in a throwaway CI runner with a read-only token,
   which is how the generated workflow is set up.
-- The install guard checks that a package's registry check is on record with a human's approval before
-  it installs; it cannot do the check itself, which needs the network and judgement, and it does not see
-  an install hidden inside a script the command runs.
+- The install guard is an installation guard, not a supply-chain security boundary. It checks that a
+  package's registry check is on record with a human's approval before it installs, reading through
+  `bash -c`, `cmd /c`, `powershell -Command` and `eval`, and it reads manifests with format-aware parsers.
+  It cannot do the registry check itself, which needs the network and judgement, and it does not see an
+  install inside a script, Makefile target, alias or command substitution. Lockfile integrity, registry
+  provenance and dependency confusion need controls of their own.
+- The infrastructure simulation runs real tools against fixtures and a throwaway cluster; it does not
+  deploy to a cloud account, so `terraform plan` against a cloud provider and `az deployment what-if` are
+  left to the project's own pipeline.

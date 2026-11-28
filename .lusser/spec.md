@@ -4,7 +4,7 @@ Context: the method already exists across my projects, including MIDAS, Substrat
 CHRYSOS (see docs/discovery.md). This repo extracts it into 1 canonical, configurable source
 that can be cloned into a new project or laid over an existing one without damaging it.
 
-Budget: 47 parts
+Budget: 62 parts
 Assumed p: 0.95
 
 ## Clauses
@@ -27,6 +27,8 @@ Assumed p: 0.95
 - C16. A register row is OPEN, CLOSED, SCHEDULED or ACCEPTED, and nothing else. SCHEDULED needs an owner, a due date and a reason; ACCEPTED needs a human decision with its date, a revisit date and a reason. A past due or revisit date fails the check, and `--release` fails on any OPEN row. A deferral marker in code is refused unless it cites a register row, and a cited row that is missing or CLOSED fails `doctor`.
 - C17. `doctor` checks a project's compliance in 1 read-only command (config and adaptations, register, markers, gates, lusser, agent contract against the rules in force, handover) and exits 1 on any failure. apply proposes a CI workflow that runs it. METHOD.md says, rule by rule, what is enforced by a machine and what relies on people.
 - C18. Nothing in the method needs Claude Code. apply writes AGENTS.md as the agent-neutral contract and a CLAUDE.md that imports it; every hook can be called without Claude Code through 1 adapter, and the deferral hook ships for the pre-commit framework. `skills install` never overwrites an existing skill. A pilot guide says how a team measures the method's overhead and adapts it.
+- C19. config_project.json carries a schema_version. Each problem with it is one of four kinds: invalid, incomplete, dangerous or deprecated; only invalid and incomplete block, and the other two are reported every time the config is checked. An older schema is brought up by `config migrate` through one migration per version, a newer one is refused, and `check` fails when the version is raised without a migration or a deprecated field leaves the schema.
+- C20. The control packs (PACKS.md: K11 infrastructure, K12 schema migrations) are selected from config like any K rule and cite real defects. Infrastructure files are C2 whatever the config says. A simulation in Docker shows, on real tools, every selected policy catching its planted violation by finding ID across Kubernetes, Terraform, Bicep, ARM and Dockerfiles, a captured plan, a verified deploy to a throwaway cluster with its NetworkPolicy enforced and shown to be the cause, a broken release rolled back, and a migration run up, up, down and up on Postgres.
 
 ## Ambiguities
 
@@ -76,3 +78,5 @@ Assumed p: 0.95
       Resolution: Approved; budget 37; push once green. (human, 2026-11-28)
 - A23. Q: A source-level review of b3a8e86 found R-14 to R-18 and asked for the generated workflow to follow ci.remote and run the project's gates, no machine path in generated files, no fallback pin to a branch, and SHA-pinned actions; the supply-chain check should be enforced by a hook, not only advised. Fix all, budget 37 to 47, and protect main with the CI checks once pushed?
       Resolution: Approved: budget 46 for the fixes, raised to 47 for the install guard; push when green; require the CI checks on main. (human, 2026-11-28)
+- A24. Q: A further review asked for gate timeouts, a refused symlink build folder, nested-shell and format-aware install checks, a versioned config model, finding IDs, tested workflow permissions with actionlint, a risk-coverage report, adversarial boundary tests, more stack examples, and control packs for infrastructure (Terraform, Bicep, ARM, Kubernetes) and migrations. Which, how are the packs evidenced, and what budget?
+      Resolution: "Do all but the refactor now; we have Docker and can simulate; measure, test, revise." Substrate's Kubernetes defects are the evidence for K11. Budget 62. (human, 2026-11-28)

@@ -27,6 +27,11 @@ MIGRATION = re.compile(r"(^|/)(migrations?|alembic|db/migrate|migrate)/")
 MACHINERY = re.compile(
     r"(^|/)(gates\.toml|\.gitlab-ci\.yml|azure-pipelines\.yml|Jenkinsfile|\.pre-commit-config\.yaml|"
     r"\.pre-commit-hooks\.yaml)$|(^|/)(hooks|\.claude/hooks|\.githooks|\.github/workflows)/")
+# Infrastructure as code (K11): always C2, whatever risk flags the project sets.
+INFRA = re.compile(
+    r"(?i)(\.tf|\.tfvars|\.bicep|\.bicepparam|\.hcl)$|(^|/)(azuredeploy[^/]*\.json|[^/]*\.arm\.json|Dockerfile[^/]*|"
+    r"[^/]*\.dockerfile|docker-compose[^/]*\.ya?ml|compose\.ya?ml|Chart\.yaml|kustomization\.ya?ml|"
+    r"helmfile\.ya?ml)$|(^|/)(k8s|kubernetes|manifests|helm|charts|terraform|bicep|arm|infra)/")
 DECIDED = re.compile(r"\(human, (\d{4}-\d{2}-\d{2})\)")
 ADAPT_KEYS = {"rule", "change", "reason", "decided", "revisit"}
 
@@ -120,6 +125,8 @@ def classify(changes: list[dict], cfg: dict | None) -> tuple[str, list[tuple[str
             reasons.append(("C2", f"{path} is a migration"))
         elif MACHINERY.search(path):
             reasons.append(("C2", f"{path} is checking machinery (gates, hooks or CI)"))
+        elif INFRA.search(path):
+            reasons.append(("C2", f"{path} is infrastructure as code (K11)"))
         if is_doc(path) and not hit:
             continue
         code_paths.append(path)

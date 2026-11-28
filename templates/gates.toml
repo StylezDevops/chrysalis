@@ -101,3 +101,42 @@ procedure = "The project owner runs the agreed scenario and records acceptance, 
 # Pin the toolchain and the tools these gates use (global.json, .nvmrc or engines, .python-version or a
 # lock file, rust-toolchain.toml, a local tool manifest instead of global installs), so an unchanged
 # codebase cannot fail because an analyser moved under it.
+#
+# Build and test by stack. Each control is the same command with a known defect switched on.
+#   Go:     run = 'go vet ./... && go test -race -count=1 ./...'
+#   Rust:   run = 'cargo clippy --all-targets -- -D warnings && cargo test --locked'
+#   Java:   run = 'mvn -B -q verify'                   (or: ./gradlew check --warning-mode=fail)
+#   .NET:   run = 'dotnet build -warnaserror && dotnet test --no-build'
+#
+# Infrastructure (K11, when risk.infrastructure is true). Run each tool from a container image pinned by
+# digest, against the project's files, with a control that runs it on a planted violation. Prefer a
+# control_expect that is the tool's own finding ID (CKV_K8S_16, DL3007) over a phrase: an ID names one
+# finding and nothing else. tests/infra_sim.py in the framework runs all of these, with a deploy to a
+# throwaway cluster and a rollback.
+#
+# [[gate]]
+# id = "I1"
+# purpose = "Policy as code: no privileged container, no root, no public SSH, no wildcard IAM, HTTPS-only storage."
+# kind = "automated"
+# run = 'docker run --rm -v "$PWD:/src:ro" bridgecrew/checkov@sha256:<digest> -d /src --framework kubernetes,terraform,bicep,arm,dockerfile --check CKV_K8S_16,CKV_K8S_23,CKV_AWS_24,CKV_AWS_62,CKV_AZURE_3'
+# pass = "exit 0"
+# control = 'the same command with -d over tests/fixtures/infra-bad, which plants one violation per check'
+# control_expect = 'CKV_K8S_16'
+#
+# [[gate]]
+# id = "I2"
+# purpose = "Each format's own validator passes: kubeconform -strict, terraform validate, az bicep build, hadolint."
+# kind = "automated"
+# run = 'a script that runs each validator on the project's files and exits non-zero on the first refusal'
+# pass = "exit 0"
+# control = 'the same script on tests/fixtures/infra-bad/broken.yaml (a Deployment whose replicas is a string)'
+# control_expect = 'the validator line that names broken.yaml'
+#
+# [[gate]]
+# id = "I3"
+# purpose = "The change deploys to a throwaway cluster, is verified running, and a broken release rolls back."
+# kind = "automated"
+# run = 'a script that starts k3s or kind in Docker, applies, waits for the rollout, probes the service, then rolls a broken release back'
+# pass = "exit 0"
+# control = 'the same script with the probe pointed at a port nothing listens on'
+# control_expect = 'the line the script prints when the probe fails'

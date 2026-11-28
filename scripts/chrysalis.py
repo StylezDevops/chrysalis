@@ -13,6 +13,8 @@ Subcommands:
   register check [--file F] [--release]  check each row's state carries its evidence (U3, U6)
   classify [--repo R] [--base B] [--declared C]  the change's class (C0 to C2) and what it asks for
   doctor [--repo R] [--release]   read-only compliance check of a project on the method
+  risk [--repo R] [--history N]   which paths each declared risk maps to, and recent commits by class
+  config migrate [--config F]     bring a config up to this Chrysalis's schema_version
   skills install [--dest D] [--prefix P] [--apply]  copy the skills, never over a different one
   check                           framework self-check: evidence, conditions, no copied text
   worktree new NAME [--repo R]    worktree on branch agent/NAME from the current base (U16)
@@ -52,13 +54,13 @@ import sys
 import proportion
 
 from change_class import cmd_classify
-from common import METHOD
 from doctor import cmd_doctor
 from gates import cmd_gates
 from inventory import DEFAULT_DEPTH, inspect
-from project_config import load_config, print_questions, questions
+from project_config import BLOCKING, cmd_config, load_config, print_questions, problems, questions
 from register import cmd_register
-from rules import Condition, parse_method, select_rules
+from risk_report import cmd_risk
+from rules import Condition, parse_method, rules_text, select_rules
 from scaffold import cmd_apply
 from selfcheck import cmd_check
 from skills_install import cmd_skills
@@ -71,6 +73,11 @@ def main(argv=None) -> int:
 
     p = sub.add_parser("validate")
     p.add_argument("--config", default="config_project.json")
+
+    p = sub.add_parser("config")
+    p.add_argument("action", choices=["migrate"])
+    p.add_argument("--config", default="config_project.json")
+    p.add_argument("--write", action="store_true", help="write the migrated config back (default: print it)")
 
     p = sub.add_parser("rules")
     p.add_argument("--config")
@@ -111,7 +118,8 @@ def main(argv=None) -> int:
     p = sub.add_parser("worktree")
     p.add_argument("action", choices=["new", "finish", "sweep"])
     p.add_argument("name", nargs="?")
-    p.add_argument("--build-dir", help="finish: the agent's build directory outside the worktree, removed too")
+    p.add_argument("--build-dir", help="finish: the agent's disposable build folder, outside the repo and the "
+                                       "worktree; DELETED with everything in it. A symlink is refused")
     p.add_argument("--apply", action="store_true", help="sweep: remove what it lists (default: dry run)")
     p.add_argument("--repo", default=".")
     p.add_argument("--base", help="base branch (default: repo.default_branch in the repo's "
@@ -124,6 +132,12 @@ def main(argv=None) -> int:
                                   "config_project.json, else main)")
     p.add_argument("--config", help="default: config_project.json in the repo, if present")
     p.add_argument("--declared", choices=proportion.CLASSES, help="fail if the diff needs a higher class")
+
+    p = sub.add_parser("risk")
+    p.add_argument("--repo", default=".")
+    p.add_argument("--config")
+    p.add_argument("--history", type=int, default=50, help="commits to classify (default 50)")
+    p.add_argument("--json", action="store_true")
 
     p = sub.add_parser("doctor")
     p.add_argument("--repo", default=".")
@@ -141,21 +155,30 @@ def main(argv=None) -> int:
         return cmd_worktree(args)
     if args.cmd == "classify":
         return cmd_classify(args)
+    if args.cmd == "risk":
+        return cmd_risk(args)
     if args.cmd == "doctor":
         return cmd_doctor(args)
     if args.cmd == "skills":
         return cmd_skills(args)
 
     if args.cmd == "validate":
-        qs = questions(load_config(pathlib.Path(args.config)))
-        if qs:
-            print_questions(qs)
+        found = problems(load_config(pathlib.Path(args.config)))
+        blocking = [(k, t) for k, t in found if k in BLOCKING]
+        for i, (kind, text) in enumerate(blocking, 1):
+            print(f"Q{i}. [{kind}] {text}")
+        for kind, text in found:
+            if kind not in BLOCKING:
+                print(f"WARN [{kind}] {text}")
+        if blocking:
             return 2
-        print("config: OK")
+        print("config: OK" + (f" ({len(found)} warning(s))" if found else ""))
         return 0
+    if args.cmd == "config":
+        return cmd_config(args)
     if args.cmd == "rules":
         if args.list_conditions:
-            for rid, cond in parse_method(METHOD.read_text(encoding="utf-8"))[1]:
+            for rid, cond in parse_method(rules_text())[1]:
                 Condition(cond)
                 print(f"{rid}  {cond}")
             return 0

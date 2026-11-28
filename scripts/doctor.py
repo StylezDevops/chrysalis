@@ -14,7 +14,7 @@ import proportion
 from common import HOOKS, ROOT, git_run, sabotaged
 from gates import load_gates
 from inventory import inspect
-from project_config import repo_config
+from project_config import repo_config, warnings
 from register import register_problems, register_rows
 from rules import select_rules
 
@@ -131,6 +131,9 @@ def cmd_doctor(args) -> int:
         print(f"{'PASS' if not problems else 'FAIL'}  {name}")
         for p in problems:
             print(f"      {p}")
+    cfg, _ = repo_config(repo, args.config)
+    for kind, text in (warnings(cfg) if isinstance(cfg, dict) else []):
+        print(f"WARN  [{kind}] {text}")
     failed = sum(1 for _, p in results if p)
     print(f"doctor: {len(results) - failed} of {len(results)} checks pass;", "OK" if not failed else "FAIL")
     return 1 if failed else 0

@@ -73,6 +73,55 @@ class Workflow(unittest.TestCase):
         self.assertIn("CONTROL RED", r.stdout)
 
 
+ACTIONLINT = "rhysd/actionlint@sha256:887a259a5a534f3c4f36cb02dca341673c6089431057242cdc931e9f133147e9"
+
+
+def rendered_workflow(d) -> pathlib.Path:
+    repo, r = apply_new(d, ci__remote="every-push")
+    assert r.returncode == 0, r.stdout
+    return repo / WORKFLOW
+
+
+def linux_docker() -> bool:
+    import shutil
+    import subprocess
+    if shutil.which("docker") is None:
+        return False
+    r = subprocess.run(["docker", "info", "--format", "{{.OSType}}"], capture_output=True, text=True)
+    return r.returncode == 0 and r.stdout.strip() == "linux"
+
+
+class Permissions(unittest.TestCase):
+    """Least privilege as a tested invariant: both workflows grant the token read access to contents and
+    nothing else, at the top level, and no job widens it."""
+
+    def check(self, text, name):
+        top = re.search(r"(?m)^permissions:\r?\n((?:[ ]+\S[^\n]*\n)+)", text)
+        self.assertIsNotNone(top, f"{name} has no top-level permissions block")
+        self.assertEqual(top.group(1).split(), ["contents:", "read"], f"{name}: {top.group(1)!r}")
+        self.assertNotRegex(text, r"(?m):\s*write\b", f"{name} grants a write permission")
+        self.assertNotRegex(text, r"(?m)^\s+permissions:\s*write-all", f"{name} grants write-all")
+        self.assertEqual(len(re.findall(r"(?m)^\s*permissions:", text)), 1, f"{name}: a job sets its own permissions")
+
+    def test_C17_workflows_grant_read_only_contents(self):
+        self.check((ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8"), "ci.yml")
+        with tempdir() as d:
+            self.check(rendered_workflow(d).read_text(encoding="utf-8"), "generated chrysalis.yml")
+
+    def test_C17_actionlint_accepts_both_workflows(self):
+        if not linux_docker():
+            self.skipTest("no Docker with Linux containers on this machine")
+        import subprocess
+        with tempdir() as d:
+            gen = rendered_workflow(d)
+            for f in (ROOT / ".github" / "workflows" / "ci.yml", gen):
+                with self.subTest(workflow=f.name):
+                    r = subprocess.run(["docker", "run", "--rm", "-v", f"{f.parent.resolve().as_posix()}:/w:ro",
+                                        ACTIONLINT, "-color=false", f"/w/{f.name}"],
+                                       capture_output=True, text=True, encoding="utf-8", timeout=300)
+                    self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+
+
 class Pinning(unittest.TestCase):
     def test_C17_the_framework_is_pinned_to_a_commit_or_apply_refuses(self):
         real = scaffold.git_run

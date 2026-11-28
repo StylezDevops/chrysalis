@@ -6,7 +6,7 @@ import re
 
 import proportion
 
-from common import METHOD, PROPORTION, lookup, sabotaged, split_row
+from common import METHOD, PACKS, PROPORTION, lookup, sabotaged, split_row
 
 
 def parse_method(text: str):
@@ -18,6 +18,13 @@ def parse_method(text: str):
         if m:
             conditional.append((m.group(1), m.group(2).replace("`", "").strip()))
     return universal, conditional
+
+
+def rules_text(method_text: str | None = None) -> str:
+    """METHOD.md and the control packs in PACKS.md, read as one rule set: packs add K rows only."""
+    method = method_text if method_text is not None else METHOD.read_text(encoding="utf-8-sig")
+    packs = PACKS.read_text(encoding="utf-8-sig") if PACKS.exists() else ""
+    return method + "\n" + packs
 
 
 def grades(text=None) -> dict:
@@ -121,7 +128,7 @@ class Condition:
 
 
 def select_rules(cfg, method_text=None):
-    universal, conditional = parse_method(method_text or METHOD.read_text(encoding="utf-8"))
+    universal, conditional = parse_method(method_text or rules_text())
     chosen = [(rid, title) for rid, title in universal]
     for rid, cond in conditional:
         if sabotaged("rules-ignore-conditions") or Condition(cond).evaluate(cfg):

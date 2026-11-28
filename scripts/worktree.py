@@ -44,8 +44,17 @@ def cmd_worktree(args) -> int:
               "branch and (with --build-dir) the build directory.")
         return 0
     # finish: only a merged, clean worktree is removed, and the branch is deleted with -d (never -D).
-    if not path.exists():
-        print(f"FAIL no worktree at {path}")
+    # A finish that was interrupted is resumed: whatever of the worktree, branch and build folder is
+    # left is removed, under the same checks. With none of them left there is nothing to finish.
+    has_tree = path.exists()
+    has_branch = git_run(repo, "rev-parse", "--verify", "--quiet", f"refs/heads/{branch}")[0] == 0
+    if not has_tree and not has_branch:
+        print(f"FAIL nothing to finish: no worktree at {path} and no branch {branch}")
+        return 1
+    if args.build_dir and pathlib.Path(args.build_dir).is_symlink():
+        # R-20: the build folder is deleted with rmtree, so a link is refused rather than resolved:
+        # deleting its target is never what "remove the build folder" meant.
+        print(f"FAIL --build-dir {args.build_dir} is a symlink; pass the real folder; nothing removed")
         return 1
     build = pathlib.Path(args.build_dir).resolve() if args.build_dir else None
     if build:
@@ -58,22 +67,27 @@ def cmd_worktree(args) -> int:
             if build == p or build in p.parents or p in build.parents:
                 print(f"FAIL --build-dir {build} is, contains or sits inside {p}; nothing removed")
                 return 1
-    code, dirty = git_run(path, "status", "--porcelain")
-    if code or dirty:
-        print(f"FAIL worktree has uncommitted changes; nothing removed:\n{dirty}")
-        return 1
-    if not sabotaged("worktree-skip-merge-check"):
+    if has_tree:
+        code, dirty = git_run(path, "status", "--porcelain")
+        if code or dirty:
+            print(f"FAIL worktree has uncommitted changes; nothing removed:\n{dirty}")
+            return 1
+    if has_branch and not sabotaged("worktree-skip-merge-check"):
         code, _ = git_run(repo, "merge-base", "--is-ancestor", branch, args.base)
         if code:
             print(f"FAIL {branch} is not merged into {args.base}; nothing removed")
             return 1
-    for step in (("worktree", "remove", str(path)), ("branch", "-d" if not sabotaged("worktree-skip-merge-check")
-                                                     else "-D", branch), ("worktree", "prune")):
+    steps = [("worktree", "remove", str(path))] if has_tree else []
+    if has_branch:
+        steps.append(("branch", "-d" if not sabotaged("worktree-skip-merge-check") else "-D", branch))
+    steps.append(("worktree", "prune"))
+    for step in steps:
         code, out = git_run(repo, *step)
         if code:
             print(f"FAIL git {' '.join(step)}: {out}")
             return 1
-    print(f"removed worktree {path} and branch {branch}")
+    print(f"removed {'worktree ' + str(path) if has_tree else 'no worktree (already gone)'} and "
+          f"{'branch ' + branch if has_branch else 'no branch (already gone)'}")
     if build and build.exists() and not sabotaged("worktree-keep-build-dir"):
         shutil.rmtree(build)
         print(f"removed build directory {build}")
