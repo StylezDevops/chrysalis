@@ -49,7 +49,7 @@ Assumed p: 0.95
 - A9. Q: Parallel agents. Proposed default: builders sequential; worktrees for fresh-context audits and for packages that touch no shared registration files; at most 1 or 2 agents. Agree?
       Resolution: Builders sequential by default. Worktrees for audits and isolated packages. The agent cap is a config value from 1 to 8 (max_parallel_agents); default 2, decided by default under A3. (human, 2026-11-25)
 - A10. Q: lusser. Mandatory for every feature, or only above a size threshold (for example more than 1 session of work)?
-      Resolution: lusser is mandatory for all work, whatever its size. (human, 2026-11-25)
+      Resolution: ~~lusser is mandatory for all work, whatever its size.~~ (human, 2026-11-25) Superseded by A20: scaled by change class. (human, 2026-11-28)
 - A11. Q: Validation targets for C13. Proposed: a copy of CHRYSOS (C++ audio, heavy existing setup) and a copy of a client web project. Substrate instead of either?
       Resolution: Throwaway copies of CHRYSOS and Substrate (heavy existing setup, different stacks) and of MIDAS and the CSAW repo (partial setup); the new-project case is an empty folder holding only the CSAW brief and its Python reference. All are my own projects. No client project is used, named or copied into this repo; repo paths are passed as arguments, never hard-coded. (human, 2026-11-25)
 - A12. Q: Naming?

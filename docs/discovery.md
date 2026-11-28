@@ -30,6 +30,8 @@ INFERRED from dates. The same method gets stricter with each project.
 
 The numbers in this table are the working numbers from the first discovery pass. `METHOD.md`
 renumbered them and added U14 to U20 later, so cite rules by their `METHOD.md` ID, not by these.
+The table records what discovery found, not the rules in force: for those, read `METHOD.md` and
+`PROPORTION.md`, which grades every rule and scales it by change class.
 
 | # | Rule | Evidence |
 |---|---|---|
@@ -41,7 +43,7 @@ renumbered them and added U14 to U20 later, so cite rules by their `METHOD.md` I
 | U6 | **A mistake of recognisable shape gets a hook.** Each hook records the incident behind it, what it does not catch, and its own positive control. | CHRYSOS .claude/hooks and H10; CHRYSOS trust-the-number-not-the-prose |
 | U7 | **One source of truth, or a mechanical diff.** | CHRYSOS check_gate_parity.py; Substrate docs-map.json and test_api_reference_complete.py |
 | U8 | **Docs move with code.** Reversals are struck through, not deleted. | Substrate check-docs-current.mjs; CHRYSOS CLAUDE.md |
-| U9 | **Fix, never defer.** A problem seen is owned, pre-existing or not. Only the project owner can leave a fault in place. | Substrate fix-never-defer, never-accept-faults; CHRYSOS a-problem-seen-is-owned; global guardrails section 4 |
+| U9 | ~~**Fix, never defer.**~~ A problem seen is owned, pre-existing or not. ~~Only the project owner can leave a fault in place.~~ Superseded 2026-11-28 by METHOD U6: every fault is on the record as OPEN, CLOSED, SCHEDULED or ACCEPTED. | Substrate fix-never-defer, never-accept-faults; CHRYSOS a-problem-seen-is-owned; global guardrails section 4 |
 | U10 | **lusser.** Numbered clauses, ambiguities resolved by a human, a part budget, and check kinds that fail differently from an agent. | .lusser/ in CHRYSOS and Substrate |
 | U11 | **Decisions carry their reasons.** Rejected alternatives, measurements and a revisit condition. | CHRYSOS decisions/; Substrate dated inline decisions |
 | U12 | **Sessions hand over.** Write the handover at about 85% context. Start and close rituals. | register-loop skill; CHRYSOS HANDOVER-*.md |
